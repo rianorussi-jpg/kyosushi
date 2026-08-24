@@ -63,3 +63,10 @@ where id=(select id from auth.users where email='milenio@kyosushi.mx');
 ```
 
 Ambas entran desde `/modococina`. RLS hace que cada cuenta solo pueda leer y actualizar pedidos de su propia sucursal. Los pedidos nuevos nacen en `preparing` automáticamente.
+
+## Actualización v6 (Rewards + Registros)
+Si ya venías usando la v5, no vuelvas a ejecutar todo `schema.sql`. En Supabase > SQL Editor ejecuta solamente:
+
+`supabase/migrate-v6-rewards-registros.sql`
+
+Esta migración agrega la tarjeta de 6 pedidos, canjes de Rewards y protege puntos/sellos para que no puedan alterarse desde el navegador. La sección Registros del panel usa la tabla de pedidos existente y no requiere otra tabla.

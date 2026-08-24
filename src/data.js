@@ -6,7 +6,7 @@ export const fallbackCategories = [
 
 export const fallbackProducts = [
   {slug:'edamames',name:'Edamames',category:'Entradas',price:98,desc:'150 g · Al vapor, asados con mantequilla y soya o spicy lemon.',image:img('edamames'),featured:true},
-  {slug:'spring-rolls',name:'Spring Rolls',category:'Entradas',price:92,desc:'4 piezas · Rellenos de vegetales, acompañados de salsa agridulce.',image:img('spring-rolls'),featured:true},
+  {slug:'spring-rolls',name:'4 Spring Rolls',category:'Entradas',price:92,desc:'4 piezas · Rellenos de vegetales, acompañados de salsa agridulce.',image:img('spring-rolls'),featured:true},
   {slug:'gyozas',name:'Gyozas de cerdo',category:'Entradas',price:104,desc:'5 piezas · Empanadillas fritas de cerdo con vegetales, acompañadas de salsa spicy ponzu.',image:img('gyozas')},
   {slug:'rokka',name:'Camarones Rokka',category:'Entradas',price:168,desc:'Camarón tempura, mayo chipotle, cebollín y aguacate sobre cama de ensalada.',image:img('rokka'),featured:true,spicy:true},
   {slug:'karaague',name:'Chicken Karaague',category:'Entradas',price:112,desc:'Pechuga marinada en soya, ajo y jengibre, con mayo chipotle y limón.',image:img('karaague')},

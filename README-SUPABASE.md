@@ -70,3 +70,10 @@ Si ya venías usando la v5, no vuelvas a ejecutar todo `schema.sql`. En Supabase
 `supabase/migrate-v6-rewards-registros.sql`
 
 Esta migración agrega la tarjeta de 6 pedidos, canjes de Rewards y protege puntos/sellos para que no puedan alterarse desde el navegador. La sección Registros del panel usa la tabla de pedidos existente y no requiere otra tabla.
+
+## Actualización v7 — Rewards en carrito
+Si ya tienes instalada la v6, ejecuta en **Supabase > SQL Editor**:
+
+`supabase/migrate-v7-reward-cart.sql`
+
+Esto permite que un voucher de **4 Spring Rolls** viaje en el carrito con precio `$0`, sea validado en el servidor y se marque como usado únicamente cuando el pedido se crea correctamente.

@@ -40,3 +40,32 @@
 .page-intro.compact{padding-bottom:8px!important}.orders{padding-top:8px!important}.orders-group-title{margin-top:0!important}
 .admin-section-toolbar,.records-toolbar{background:#fff;border:1px solid #e6e1da;border-radius:15px;padding:14px 16px;margin-bottom:16px}.admin-section-toolbar small,.records-toolbar small{display:block;font-size:9px;letter-spacing:.12em;color:#888;font-weight:900;margin-bottom:8px}.admin-filter-row{display:flex;gap:7px;flex-wrap:wrap}.admin-filter-row button{border:1px solid #ddd;background:#fff;border-radius:999px;padding:8px 13px;font-weight:800;cursor:pointer}.admin-filter-row button.active{background:#111;color:#fff;border-color:#111}.admin-order-top{grid-template-columns:auto auto auto 1fr auto!important;align-items:center}.branch-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:900;letter-spacing:.05em}.branch-pill.zakia{background:#e7f1e8;color:#275f35}.branch-pill.milenio{background:#e7edf6;color:#31577b}.branch-pill.small{padding:5px 8px;font-size:9px}.records-toolbar{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}.record-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}.record-summary article{background:#111;color:#fff;border-radius:16px;padding:18px;display:flex;align-items:center;gap:13px}.record-summary article>svg{width:28px;height:28px}.record-summary span{display:grid}.record-summary small{font-size:9px;letter-spacing:.12em;color:#aaa}.record-summary strong{font-size:25px;margin-top:3px}.records-table{background:#fff;border:1px solid #e5e0d9;border-radius:16px;overflow:hidden}.records-head,.records-row{display:grid;grid-template-columns:.7fr 1.35fr .8fr 1.2fr .8fr .7fr;gap:12px;align-items:center;padding:12px 15px}.records-head{background:#f5f3ef;font-size:9px;letter-spacing:.1em;font-weight:900;color:#777}.records-row{border-top:1px solid #eee;font-size:12px}.records-row>strong:last-child{text-align:right}.records-empty{padding:38px;text-align:center;color:#888}
 @media(max-width:800px){.reward-grid{grid-template-columns:1fr}.profile-address-head{align-items:flex-start}.destination-address-row{grid-template-columns:1fr 38px}.record-summary{grid-template-columns:1fr}.records-table{overflow-x:auto}.records-head,.records-row{min-width:780px}.admin-order-top{grid-template-columns:1fr 1fr!important}.branch-pill{justify-self:start}.records-toolbar{display:grid}.admin-side nav{grid-template-columns:repeat(3,1fr)!important}.admin-side nav button{font-size:11px}.stamp-row{gap:5px}}
+
+/* ===== v7: canje directo al carrito + ajustes visuales ===== */
+.rewards-balance{margin-top:0!important;margin-bottom:10px!important}
+.reward-benefits{clear:both;padding-top:20px!important}
+.reward-grid .reward-card{width:auto!important;margin:0!important;position:relative;min-width:0}
+.points-reward-card{align-content:start}
+.reward-card-copy{min-width:0;display:block}
+.reward-card-copy small{display:block;margin-bottom:5px;line-height:1.35}
+.reward-card-copy h3{line-height:1.08;overflow-wrap:anywhere}
+.reward-card-copy p{display:block}
+.available-rewards>div{flex-wrap:wrap}
+.reward-cart-btn{margin-left:auto;border:0;background:#111;color:#fff;border-radius:10px;padding:9px 12px;font-weight:800;font-size:11px}
+.reward-free-price{color:var(--green)!important;font-size:12px!important}
+.reward-qty{width:max-content}
+.reward-qty b{min-width:20px;text-align:center}
+/* Pedidos: elimina el hueco entre el título y el pedido actual. */
+.page-intro.compact{min-height:0!important;padding-top:28px!important;padding-bottom:0!important}
+.page-intro.compact h1{margin-bottom:6px!important}
+.orders{padding-top:0!important;margin-top:-2px!important;gap:12px!important}
+.orders-group-title{margin:0 0 8px!important}
+@media(max-width:800px){
+  .rewards-intro{padding-bottom:12px!important}
+  .rewards-balance{margin:8px 5% 4px!important}
+  .reward-benefits{padding-top:18px!important}
+  .reward-grid .reward-card{width:100%!important;margin:0!important}
+  .page-intro.compact{padding:22px 5% 0!important}
+  .page-intro.compact h1{font-size:34px!important;margin:8px 0 4px!important}
+  .orders{padding:0 5% 40px!important}
+}

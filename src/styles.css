@@ -69,3 +69,178 @@
   .page-intro.compact h1{font-size:34px!important;margin:8px 0 4px!important}
   .orders{padding:0 5% 40px!important}
 }
+
+/* ===== v8: alineación del selector de entrega, direcciones y estado vacío ===== */
+/* El menú heredaba flex-direction:column de .branch-menu button. Se normalizan
+   todos sus renglones para que dirección, iconos y sucursales queden simétricos. */
+.destination-menu{
+  width:min(430px,92vw)!important;
+  padding:12px!important;
+}
+.destination-menu .destination-title{
+  padding:10px 12px 12px!important;
+  text-align:center!important;
+}
+.destination-address-row{
+  grid-template-columns:minmax(0,1fr) 44px!important;
+  align-items:center!important;
+  min-height:62px;
+  margin:5px 0!important;
+}
+.destination-menu .destination-address-main{
+  width:100%!important;
+  min-width:0!important;
+  height:100%!important;
+  padding:11px 12px!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  text-align:left!important;
+}
+.destination-address-main>span{
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  gap:6px!important;
+  text-align:left!important;
+}
+.destination-address-main strong,
+.destination-address-main small{
+  display:block!important;
+  width:100%!important;
+  text-align:left!important;
+}
+.destination-edit{
+  width:44px!important;
+  min-width:44px!important;
+  height:100%!important;
+  min-height:62px!important;
+  align-self:stretch!important;
+  justify-self:end!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+}
+.destination-edit svg{
+  display:block!important;
+  width:16px!important;
+  height:16px!important;
+  margin:auto!important;
+}
+.destination-menu .add-location{
+  width:100%!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+  padding:15px 12px!important;
+  margin:10px 0 12px!important;
+  text-align:left!important;
+}
+.destination-menu .add-location>svg{
+  width:18px!important;
+  height:18px!important;
+  flex:0 0 18px!important;
+}
+.destination-menu .add-location>span{
+  min-width:0!important;
+  display:grid!important;
+  gap:7px!important;
+  text-align:left!important;
+}
+.destination-menu .add-location strong,
+.destination-menu .add-location small{
+  display:block!important;
+  margin:0!important;
+  text-align:left!important;
+}
+.pickup-title{
+  padding:15px 12px 7px!important;
+  text-align:left!important;
+}
+.destination-menu .pickup-option{
+  width:100%!important;
+  min-height:64px!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+  padding:12px!important;
+  margin:5px 0!important;
+  text-align:left!important;
+}
+.destination-menu .pickup-option>svg{
+  width:18px!important;
+  height:18px!important;
+  flex:0 0 18px!important;
+}
+.destination-menu .pickup-option>span{
+  width:100%!important;
+  min-width:0!important;
+  display:grid!important;
+  gap:6px!important;
+  text-align:left!important;
+}
+.destination-menu .pickup-option strong,
+.destination-menu .pickup-option small{
+  width:100%!important;
+  display:block!important;
+  margin:0!important;
+  text-align:left!important;
+}
+
+/* Perfil: centra exactamente lápiz y bote dentro de cada botón. */
+.profile-address-panel .address-option{
+  align-items:center!important;
+}
+.profile-address-panel .address-option>svg{
+  flex:0 0 19px!important;
+}
+.profile-address-panel .address-option>span{
+  min-width:0!important;
+}
+.profile-address-panel .address-actions{
+  flex:0 0 auto!important;
+  margin-left:auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.profile-address-panel .address-actions button{
+  flex:0 0 36px!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:0!important;
+}
+.profile-address-panel .address-actions button svg{
+  display:block!important;
+  width:16px!important;
+  height:16px!important;
+  margin:auto!important;
+}
+
+/* Pedidos sin pedido activo: la regla genérica .orders button dejaba fondo blanco
+   pero conservaba el texto blanco de .primary. */
+.no-active-order .primary{
+  background:var(--red)!important;
+  color:#fff!important;
+  border-color:var(--red)!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  visibility:visible!important;
+  opacity:1!important;
+}
+
+@media(max-width:800px){
+  .destination-menu{right:-4px!important;width:min(410px,94vw)!important}
+  .destination-address-row{grid-template-columns:minmax(0,1fr) 44px!important}
+  .destination-edit{width:44px!important;min-width:44px!important}
+  .no-active-order .primary{width:100%!important}
+}

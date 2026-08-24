@@ -32,3 +32,14 @@ También puedes probar el panel entrando a `/panel` en el dominio normal.
 
 ## Seguridad
 No pongas la `service_role` en Vercel ni en el frontend. El proyecto usa la anon key + RLS. Las acciones de admin requieren `profiles.is_admin = true`.
+
+
+## Panel administrativo y Vercel
+
+El panel ahora vive en `src/pages/AdminPanel.jsx` y la ruta pública es `/panel`.
+
+El archivo `vercel.json` incluido hace el rewrite necesario para que abrir directamente `https://tu-dominio.com/panel` funcione con React Router.
+
+Para usar `panel.tu-dominio.com`, agrega ese subdominio como Domain dentro del mismo proyecto de Vercel. Al entrar a la raíz del subdominio, la app redirige automáticamente a `/panel`.
+
+Si todavía no configuraste las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, el panel mostrará el formulario pero no podrá iniciar sesión hasta agregarlas y volver a desplegar.

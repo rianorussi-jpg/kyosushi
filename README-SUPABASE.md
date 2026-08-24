@@ -43,3 +43,23 @@ El archivo `vercel.json` incluido hace el rewrite necesario para que abrir direc
 Para usar `panel.tu-dominio.com`, agrega ese subdominio como Domain dentro del mismo proyecto de Vercel. Al entrar a la raíz del subdominio, la app redirige automáticamente a `/panel`.
 
 Si todavía no configuraste las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`, el panel mostrará el formulario pero no podrá iniciar sesión hasta agregarlas y volver a desplegar.
+
+## Actualización v5 — direcciones y modo cocina
+Si tu proyecto Supabase ya estaba creado con una versión anterior, ejecuta **una sola vez**:
+
+`supabase/migrate-v5-direcciones-cocina.sql`
+
+Después crea en **Authentication > Users** estas dos cuentas con sus contraseñas:
+- `zakia@kyosushi.mx`
+- `milenio@kyosushi.mx`
+
+Y en SQL Editor ejecuta:
+```sql
+update public.profiles set kitchen_branch='zakia'
+where id=(select id from auth.users where email='zakia@kyosushi.mx');
+
+update public.profiles set kitchen_branch='milenio'
+where id=(select id from auth.users where email='milenio@kyosushi.mx');
+```
+
+Ambas entran desde `/modococina`. RLS hace que cada cuenta solo pueda leer y actualizar pedidos de su propia sucursal. Los pedidos nuevos nacen en `preparing` automáticamente.

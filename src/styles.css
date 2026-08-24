@@ -244,3 +244,29 @@
   .destination-edit{width:44px!important;min-width:44px!important}
   .no-active-order .primary{width:100%!important}
 }
+
+
+/* ===== v9: Rewards compactos + carrito de Menú sin monto ===== */
+.rewards-intro{
+  min-height:0!important;
+  padding-top:30px!important;
+  padding-bottom:12px!important;
+}
+.rewards-intro h1{margin:8px 0 8px!important;}
+.rewards-intro p{margin:0!important;}
+.rewards-balance{margin-top:8px!important;margin-bottom:8px!important;}
+.reward-benefits{padding-top:16px!important;}
+.reward-benefits .section-head{margin-bottom:14px!important;}
+.reward-grid{gap:14px!important;}
+.reward-grid .stamp-card{gap:10px!important;padding-top:18px!important;}
+.reward-grid .stamp-card>div:first-child{display:grid!important;gap:3px!important;}
+.reward-grid .stamp-card>div:first-child small{margin:0!important;line-height:1.2!important;}
+.reward-grid .stamp-card h3{margin:2px 0!important;line-height:1.15!important;}
+.reward-grid .stamp-card p{margin:0!important;line-height:1.35!important;}
+@media(max-width:800px){
+  .rewards-intro{padding:24px 5% 10px!important;}
+  .rewards-balance{margin:6px 5% 4px!important;}
+  .reward-benefits{padding-top:14px!important;}
+  .reward-benefits .section-head{margin-bottom:12px!important;}
+  .reward-grid .stamp-card{padding:18px!important;gap:10px!important;}
+}

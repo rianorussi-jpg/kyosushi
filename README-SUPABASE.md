@@ -77,3 +77,7 @@ Si ya tienes instalada la v6, ejecuta en **Supabase > SQL Editor**:
 `supabase/migrate-v7-reward-cart.sql`
 
 Esto permite que un voucher de **4 Spring Rolls** viaje en el carrito con precio `$0`, sea validado en el servidor y se marque como usado únicamente cuando el pedido se crea correctamente.
+
+## v10 — Personalizaciones reutilizables
+Si vienes de la v9, ejecuta una sola vez `supabase/migrate-v10-personalizaciones.sql` en Supabase > SQL Editor.
+Después, en Panel > Menú > Nuevo/Editar producto puedes crear plantillas reutilizables (elegir una, marcar varias o elegir cantidad), con opciones gratis o con costo, y asignarlas a múltiples productos.

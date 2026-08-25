@@ -48,7 +48,62 @@ function AdminRecords({orders}){
 
 function AdminMenuManager({catalog,onEdit}){
   const [view,setView]=useState('products')
-  return <><div className="menu-admin-tabs"><button className={view==='products'?'active':''} onClick={()=>setView('products')}>Productos</button><button className={view==='categories'?'active':''} onClick={()=>setView('categories')}>Categorías y subcategorías</button></div>{view==='products'?<div className="admin-product-grid">{catalog.products.map(p=><article key={p.id} className={!p.available?'disabled':''}><img src={p.image||p.image_url}/><div><small>{p.category}{p.subcategory?` · ${p.subcategory}`:''}</small><h3>{p.name}</h3><strong>{money(p.price)}</strong><span>{p.available?'Disponible':'Agotado'}</span></div><button onClick={()=>onEdit(p)}><Pencil/></button></article>)}</div>:<CategoryManager catalog={catalog}/>}</>
+  const [saving,setSaving]=useState('')
+  const branches=catalog.branches||[]
+
+  const setProductBranch=async(product,branchId,available)=>{
+    const key=`${product.id}:${branchId}`;setSaving(key)
+    const {error}=await supabase.from('product_branch_availability').upsert(
+      {product_id:product.id,branch_id:branchId,available},
+      {onConflict:'product_id,branch_id'}
+    )
+    setSaving('')
+    if(error)return alert(error.message)
+    await catalog.refresh()
+  }
+
+  const parents=(catalog.categoryObjects||[]).filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order)
+  const groups=parents.map(cat=>({
+    cat,
+    products:catalog.products.filter(p=>p.category===cat.name),
+    subs:(catalog.categoryObjects||[]).filter(s=>s.parent_id===cat.id).sort((a,b)=>a.sort_order-b.sort_order)
+  }))
+
+  return <>
+    <div className="menu-admin-tabs">
+      <button className={view==='products'?'active':''} onClick={()=>setView('products')}>Productos por categoría</button>
+      <button className={view==='categories'?'active':''} onClick={()=>setView('categories')}>Categorías y subcategorías</button>
+    </div>
+    {view==='products'
+      ?<div className="admin-menu-by-category">
+        {groups.map(({cat,products,subs})=><section className="admin-menu-category" key={cat.id}>
+          <div className="admin-menu-category-head"><div><small>CATEGORÍA</small><h2>{cat.name}</h2></div><span>{products.length} producto{products.length===1?'':'s'}</span></div>
+          {subs.length>0
+            ?<>
+              {subs.map(sub=>{const items=products.filter(p=>p.subcategory===sub.name);return items.length?<div className="admin-subcategory-block" key={sub.id}><h3>{sub.name}</h3><div className="admin-product-grid">{items.map(product=><AdminProductCard key={product.id} product={product} branches={branches} saving={saving} setProductBranch={setProductBranch} onEdit={onEdit}/>)}</div></div>:null})}
+              {products.some(p=>!p.subcategory)&&<div className="admin-subcategory-block"><h3>Sin subcategoría</h3><div className="admin-product-grid">{products.filter(p=>!p.subcategory).map(product=><AdminProductCard key={product.id} product={product} branches={branches} saving={saving} setProductBranch={setProductBranch} onEdit={onEdit}/>)}</div></div>}
+            </>
+            :<div className="admin-product-grid">{products.map(product=><AdminProductCard key={product.id} product={product} branches={branches} saving={saving} setProductBranch={setProductBranch} onEdit={onEdit}/>)}</div>}
+        </section>)}
+      </div>
+      :<CategoryManager catalog={catalog}/>}
+  </>
+}
+
+function AdminProductCard({product,branches,saving,setProductBranch,onEdit}){
+  return <article className={`admin-product-card-branch ${!product.available?'disabled':''}`}>
+    <img src={product.image||product.image_url}/>
+    <div className="admin-product-card-info">
+      <small>{product.subcategory||product.category}</small>
+      <h3>{product.name}</h3>
+      <strong>{money(product.price)}</strong>
+      <span>{product.available?'Disponible en menú':'Agotado globalmente'}</span>
+      <div className="branch-availability-row">
+        {branches.map(b=>{const available=product.branchAvailability?.[b.id]!==false;const key=`${product.id}:${b.id}`;return <button type="button" key={b.id} disabled={saving===key||!product.available} className={available?'available':'unavailable'} onClick={()=>setProductBranch(product,b.id,!available)}><span>{b.short||b.name}</span><b>{available?'Disponible':'No disponible'}</b></button>})}
+      </div>
+    </div>
+    <button className="admin-edit-product" onClick={()=>onEdit(product)}><Pencil/></button>
+  </article>
 }
 
 function slugify(value){return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')}
@@ -104,20 +159,36 @@ function ProductEditor({product,catalog,onClose,onSaved}){
   const [form,setForm]=useState({name:product?.name||'',description:product?.description||product?.desc||'',price:product?.price||'',category:product?.category||categories[0]||'Entradas',image_url:product?.image_url||product?.image||'',featured:!!product?.featured,spicy:!!product?.spicy,available:product?.available!==false,subcategory:product?.subcategory||''})
   const [file,setFile]=useState(null); const [imageRotation,setImageRotation]=useState(0); const [imageZoom,setImageZoom]=useState(100); const [busy,setBusy]=useState(false); const [error,setError]=useState('')
   const [templates,setTemplates]=useState([]); const [assigned,setAssigned]=useState((product?.customizations||[]).map(x=>x.id)); const [assignedOrder,setAssignedOrder]=useState((product?.customizations||[]).map(x=>x.id)); const [showTemplate,setShowTemplate]=useState(false)
-  const [template,setTemplate]=useState({name:'',input_type:'single',required:false,min_select:0,max_select:1,options:[{id:crypto.randomUUID(),name:'',price:0}]}); const [editingTemplateId,setEditingTemplateId]=useState(null)
-  const loadTemplates=async()=>{const {data}=await supabase.from('customization_templates').select('*').order('name');setTemplates(data||[])}
+  const [template,setTemplate]=useState({name:'',input_type:'single',required:false,min_select:0,max_select:1,options:[{id:crypto.randomUUID(),name:'',price:0,branchAvailability:{zakia:true,milenio:true}}]}); const [editingTemplateId,setEditingTemplateId]=useState(null)
+  const loadTemplates=async()=>{const {data}=await supabase.from('customization_templates').select('*, customization_option_branch_availability(option_id,branch_id,available)').order('name');setTemplates((data||[]).map(t=>({...t,options:(t.options||[]).map(o=>({...o,branchAvailability:Object.fromEntries((t.customization_option_branch_availability||[]).filter(r=>r.option_id===o.id).map(r=>[r.branch_id,r.available]))}))}))}
   useEffect(()=>{loadTemplates()},[])
-  const addOption=()=>setTemplate(t=>({...t,options:[...t.options,{id:crypto.randomUUID(),name:'',price:0}]}))
+  const addOption=()=>setTemplate(t=>({...t,options:[...t.options,{id:crypto.randomUUID(),name:'',price:0,branchAvailability:{zakia:true,milenio:true}}]}))
   const updateOption=(id,key,value)=>setTemplate(t=>({...t,options:t.options.map(o=>o.id===id?{...o,[key]:value}:o)}))
   const removeOption=id=>setTemplate(t=>({...t,options:t.options.filter(o=>o.id!==id)}))
-  const resetTemplate=()=>{setEditingTemplateId(null);setShowTemplate(false);setTemplate({name:'',input_type:'single',required:false,min_select:0,max_select:1,options:[{id:crypto.randomUUID(),name:'',price:0}]})}
+  const resetTemplate=()=>{setEditingTemplateId(null);setShowTemplate(false);setTemplate({name:'',input_type:'single',required:false,min_select:0,max_select:1,options:[{id:crypto.randomUUID(),name:'',price:0,branchAvailability:{zakia:true,milenio:true}}]})}
   const editTemplate=t=>{setEditingTemplateId(t.id);setTemplate({...t,options:(t.options||[]).map(o=>({...o}))});setShowTemplate(true)}
   const saveTemplate=async()=>{
     if(!template.name.trim()||!template.options.some(o=>o.name.trim()))return setError('Pon nombre a la personalización y al menos una opción.')
-    const clean={name:template.name.trim(),input_type:template.input_type,required:!!template.required,min_select:Number(template.min_select||0),max_select:Number(template.max_select||0),options:template.options.filter(o=>o.name.trim()).map(o=>({...o,name:o.name.trim(),price:Number(o.price||0)}))}
-    if(editingTemplateId){const {data,error:e}=await supabase.from('customization_templates').update(clean).eq('id',editingTemplateId).select().single();if(e)return setError(e.message);setTemplates(x=>x.map(t=>t.id===editingTemplateId?data:t).sort((a,b)=>a.name.localeCompare(b.name)));resetTemplate();return}
-    const {data,error:e}=await supabase.from('customization_templates').insert(clean).select().single();if(e)return setError(e.message)
-    setTemplates(x=>[...x,data].sort((a,b)=>a.name.localeCompare(b.name)));setAssigned(x=>[...x,data.id]);setAssignedOrder(x=>[...x,data.id]);resetTemplate()
+    const validOptions=template.options.filter(o=>o.name.trim())
+    const clean={name:template.name.trim(),input_type:template.input_type,required:!!template.required,min_select:Number(template.min_select||0),max_select:Number(template.max_select||0),options:validOptions.map(o=>({id:o.id,name:o.name.trim(),price:Number(o.price||0)}))}
+    let saved
+    if(editingTemplateId){
+      const {data,error:e}=await supabase.from('customization_templates').update(clean).eq('id',editingTemplateId).select().single()
+      if(e)return setError(e.message);saved=data
+    }else{
+      const {data,error:e}=await supabase.from('customization_templates').insert(clean).select().single()
+      if(e)return setError(e.message);saved=data
+    }
+    await supabase.from('customization_option_branch_availability').delete().eq('template_id',saved.id)
+    const availabilityRows=validOptions.flatMap(o=>(catalog.branches||[]).map(b=>({
+      template_id:saved.id,option_id:o.id,branch_id:b.id,available:o.branchAvailability?.[b.id]!==false
+    })))
+    if(availabilityRows.length){
+      const {error:aerr}=await supabase.from('customization_option_branch_availability').insert(availabilityRows)
+      if(aerr)return setError(aerr.message)
+    }
+    if(!editingTemplateId){setAssigned(x=>[...x,saved.id]);setAssignedOrder(x=>[...x,saved.id])}
+    await loadTemplates();resetTemplate();await catalog.refresh()
   }
   const save=async()=>{setBusy(true);setError('');let imageUrl=form.image_url
     if(file){let uploadFile=file;try{uploadFile=await processProductImage(file,imageRotation,imageZoom)}catch(e){setError(e.message||'No se pudo girar la imagen.');setBusy(false);return}const ext=uploadFile.name.split('.').pop();const path=`products/${crypto.randomUUID()}.${ext}`;const {error:up}=await supabase.storage.from(MENU_BUCKET).upload(path,uploadFile,{upsert:false,contentType:uploadFile.type||undefined});if(up){setError(up.message);setBusy(false);return} imageUrl=supabase.storage.from(MENU_BUCKET).getPublicUrl(path).data.publicUrl}
@@ -134,7 +205,7 @@ function ProductEditor({product,catalog,onClose,onSaved}){
   const remove=async()=>{if(!product?.id||!confirm('¿Eliminar este producto?'))return;await supabase.from('products').delete().eq('id',product.id);onSaved()}
   return <div className="modal-backdrop"><div className="product-editor product-editor-wide"><div className="modal-head"><div><small>{product?'EDITAR PRODUCTO':'NUEVO PRODUCTO'}</small><h2>{product?.name||'Agregar al menú'}</h2></div><button onClick={onClose}><X/></button></div><div className="editor-grid"><label className="admin-field"><span>Nombre</span><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label className="admin-field"><span>Precio base</span><input type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label className="admin-field"><span>Categoría</span><select value={form.category} onChange={e=>setForm({...form,category:e.target.value,subcategory:''})}>{categories.map(c=><option key={c}>{c}</option>)}</select></label>{(()=>{const parent=categoryObjects.find(c=>!c.parent_id&&c.name===form.category);const subs=categoryObjects.filter(c=>parent&&c.parent_id===parent.id);return subs.length?<label className="admin-field"><span>Subcategoría</span><select value={form.subcategory} onChange={e=>setForm({...form,subcategory:e.target.value})}><option value="">Sin subcategoría</option>{subs.map(s=><option key={s.id}>{s.name}</option>)}</select></label>:null})()}<label className="admin-field full-span"><span>Descripción</span><textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/></label><label className="image-upload full-span"><Upload/><span><strong>Subir nueva foto</strong><small>JPG, PNG o WebP. Puedes girarla antes de guardar.</small></span><input type="file" accept="image/*" onChange={e=>{const next=e.target.files?.[0]||null;setFile(next);setImageRotation(0);setImageZoom(100)}}/></label>{(file||form.image_url)&&<div className="image-editor-preview full-span"><div className="image-preview-stage"><img className="editor-preview" src={file?URL.createObjectURL(file):form.image_url} style={file?{transform:`rotate(${imageRotation}deg) scale(${imageZoom/100})`}:undefined}/></div>{file&&<div className="image-edit-controls"><div className="image-rotate-controls"><button type="button" onClick={()=>setImageRotation(r=>(r+270)%360)}><RotateCcw size={18}/><span>Girar izquierda</span></button><b>{imageRotation}°</b><button type="button" onClick={()=>setImageRotation(r=>(r+90)%360)}><RotateCw size={18}/><span>Girar derecha</span></button></div><div className="image-zoom-controls"><button type="button" disabled={imageZoom<=60} onClick={()=>setImageZoom(z=>Math.max(60,z-10))}><ZoomOut size={18}/><span>Alejar</span></button><div><strong>{imageZoom}%</strong><input aria-label="Zoom de imagen" type="range" min="60" max="180" step="5" value={imageZoom} onChange={e=>setImageZoom(Number(e.target.value))}/></div><button type="button" disabled={imageZoom>=180} onClick={()=>setImageZoom(z=>Math.min(180,z+10))}><ZoomIn size={18}/><span>Acercar</span></button></div><button type="button" className="image-reset-btn" disabled={imageRotation===0&&imageZoom===100} onClick={()=>{setImageRotation(0);setImageZoom(100)}}>Restablecer imagen</button></div>}</div>}<div className="editor-toggles full-span"><label><input type="checkbox" checked={form.available} onChange={e=>setForm({...form,available:e.target.checked})}/> Disponible</label><label><input type="checkbox" checked={form.featured} onChange={e=>setForm({...form,featured:e.target.checked})}/> Favorito</label><label><input type="checkbox" checked={form.spicy} onChange={e=>setForm({...form,spicy:e.target.checked})}/> Spicy</label></div>
     <section className="custom-admin-section full-span"><div className="custom-admin-head"><div><small>PERSONALIZACIÓN DEL PRODUCTO</small><h3>Opciones para el cliente</h3><p>Asigna plantillas guardadas o crea una nueva para reutilizarla en otros productos.</p></div><button className="secondary-btn" onClick={()=>{if(showTemplate){resetTemplate()}else{setEditingTemplateId(null);setShowTemplate(true)}}}><Plus/> Nueva plantilla</button></div>
-      {showTemplate&&<div className="template-builder"><div className="template-builder-grid"><label className="admin-field"><span>Nombre</span><input value={template.name} onChange={e=>setTemplate({...template,name:e.target.value})} placeholder="Ej. Salsas"/></label><label className="admin-field"><span>Tipo</span><select value={template.input_type} onChange={e=>setTemplate({...template,input_type:e.target.value,max_select:e.target.value==='single'?1:template.max_select})}><option value="single">Elegir una</option><option value="multiple">Marcar opciones</option><option value="quantity">Elegir cantidad</option></select></label><label className="admin-check"><input type="checkbox" checked={template.required} onChange={e=>setTemplate({...template,required:e.target.checked,min_select:e.target.checked?Math.max(1,Number(template.min_select||0)):0})}/> Obligatoria</label><label className="admin-field"><span>Mínimo</span><input type="number" min="0" value={template.min_select} onChange={e=>setTemplate({...template,min_select:e.target.value})}/></label><label className="admin-field"><span>Máximo</span><input type="number" min="1" value={template.max_select} onChange={e=>setTemplate({...template,max_select:e.target.value})}/></label></div><div className="template-options"><div className="template-options-head"><strong>Opciones</strong><small>El costo puede ser $0.</small></div>{template.options.map(o=><div className="template-option-row" key={o.id}><input value={o.name} onChange={e=>updateOption(o.id,'name',e.target.value)} placeholder="Nombre de opción"/><div className="price-input"><span>$</span><input type="number" min="0" step="1" value={o.price} onChange={e=>updateOption(o.id,'price',e.target.value)}/></div><button onClick={()=>removeOption(o.id)}><Trash2 size={16}/></button></div>)}<button className="text-btn" onClick={addOption}><Plus size={16}/> Agregar opción</button></div><div className="template-builder-actions"><button className="secondary-btn" onClick={resetTemplate}>Cancelar</button><button className="primary" onClick={saveTemplate}><Save size={16}/> {editingTemplateId?'Guardar cambios':'Guardar plantilla y asignar'}</button></div></div>}
+      {showTemplate&&<div className="template-builder"><div className="template-builder-grid"><label className="admin-field"><span>Nombre</span><input value={template.name} onChange={e=>setTemplate({...template,name:e.target.value})} placeholder="Ej. Salsas"/></label><label className="admin-field"><span>Tipo</span><select value={template.input_type} onChange={e=>setTemplate({...template,input_type:e.target.value,max_select:e.target.value==='single'?1:template.max_select})}><option value="single">Elegir una</option><option value="multiple">Marcar opciones</option><option value="quantity">Elegir cantidad</option></select></label><label className="admin-check"><input type="checkbox" checked={template.required} onChange={e=>setTemplate({...template,required:e.target.checked,min_select:e.target.checked?Math.max(1,Number(template.min_select||0)):0})}/> Obligatoria</label><label className="admin-field"><span>Mínimo</span><input type="number" min="0" value={template.min_select} onChange={e=>setTemplate({...template,min_select:e.target.value})}/></label><label className="admin-field"><span>Máximo</span><input type="number" min="1" value={template.max_select} onChange={e=>setTemplate({...template,max_select:e.target.value})}/></label></div><div className="template-options"><div className="template-options-head"><strong>Opciones</strong><small>El costo puede ser $0.</small></div>{template.options.map(o=><div className="template-option-row template-option-branch-row" key={o.id}><input value={o.name} onChange={e=>updateOption(o.id,'name',e.target.value)} placeholder="Nombre de opción"/><div className="price-input"><span>$</span><input type="number" min="0" step="1" value={o.price} onChange={e=>updateOption(o.id,'price',e.target.value)}/></div><div className="option-branch-toggles">{(catalog.branches||[]).map(b=>{const available=o.branchAvailability?.[b.id]!==false;return <button type="button" key={b.id} className={available?'available':'unavailable'} onClick={()=>setTemplate(t=>({...t,options:t.options.map(x=>x.id===o.id?{...x,branchAvailability:{...(x.branchAvailability||{}),[b.id]:!available}}:x)}))}><span>{b.short||b.name}</span><b>{available?'✓':'×'}</b></button>})}</div><button onClick={()=>removeOption(o.id)}><Trash2 size={16}/></button></div>)}<button className="text-btn" onClick={addOption}><Plus size={16}/> Agregar opción</button></div><div className="template-builder-actions"><button className="secondary-btn" onClick={resetTemplate}>Cancelar</button><button className="primary" onClick={saveTemplate}><Save size={16}/> {editingTemplateId?'Guardar cambios':'Guardar plantilla y asignar'}</button></div></div>}
       <div className="template-library">{templates.length===0?<p className="template-empty">Todavía no hay plantillas guardadas.</p>:templates.map(t=>{const active=assigned.includes(t.id);const pos=assignedOrder.filter(id=>assigned.includes(id)).indexOf(t.id);const activeCount=assignedOrder.filter(id=>assigned.includes(id)).length;const move=(dir)=>setAssignedOrder(order=>{const a=order.filter(id=>assigned.includes(id));const rest=order.filter(id=>!assigned.includes(id));const i=a.indexOf(t.id);if(i<0)return order;const j=i+dir;if(j<0||j>=a.length)return order;[a[i],a[j]]=[a[j],a[i]];return [...a,...rest]});return <div className={`template-card template-card-order ${active?'active':''}`} key={t.id}><label><input type="checkbox" checked={active} onChange={e=>{setAssigned(x=>e.target.checked?[...x,t.id]:x.filter(id=>id!==t.id));if(e.target.checked)setAssignedOrder(x=>x.includes(t.id)?x:[...x,t.id])}}/><div><strong>{t.name}</strong><small>{t.input_type==='single'?'Elegir una':t.input_type==='multiple'?'Marcar opciones':'Por cantidad'} · {t.required?'Obligatoria':'Opcional'}</small><span>{(t.options||[]).map(o=>`${o.name}${Number(o.price)>0?` (+$${o.price})`:''}`).join(' · ')}</span></div></label><button type="button" className="template-edit-btn" onClick={()=>editTemplate(t)}><Pencil size={15}/> Editar</button>{active&&<div className="template-order-controls"><b>{pos+1}</b><button type="button" disabled={pos<=0} onClick={()=>move(-1)} aria-label="Subir personalización">↑</button><button type="button" disabled={pos<0||pos>=activeCount-1} onClick={()=>move(1)} aria-label="Bajar personalización">↓</button></div>}</div>})}</div>
     </section></div>{error&&<div className="form-message">{error}</div>}<div className="modal-actions">{product&&<button className="danger-btn" onClick={remove}><Trash2/> Eliminar</button>}<button className="secondary-btn" onClick={onClose}>Cancelar</button><button className="primary" disabled={busy} onClick={save}><Save/> {busy?'Guardando...':'Guardar producto'}</button></div></div></div>
 }

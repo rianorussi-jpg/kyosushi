@@ -896,3 +896,9 @@
     height:106px;
   }
 }
+
+
+/* Inicio: el logo vive solamente en el hero; el resto conserva el header normal. */
+.topbar.no-brand{
+  justify-content:flex-end;
+}

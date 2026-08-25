@@ -2648,3 +2648,159 @@ main{
     flex:1 1 120px;
   }
 }
+
+
+/* ===== v22.3 fixes ===== */
+
+/* Cart / Checkout: remove white sticky footer backgrounds */
+.checkout-bar{
+  background:transparent!important;
+  box-shadow:none!important;
+  border:0!important;
+}
+.checkout-bar .primary{
+  background:var(--kyo-orange)!important;
+  color:#111!important;
+  border:0!important;
+}
+.cart-minimum-notice + .checkout-bar{
+  margin-top:8px!important;
+}
+
+/* Address chooser: two equal branch cards, mandatory selection */
+.address-branch-choice{
+  display:grid;
+  gap:7px;
+  margin-top:2px;
+}
+.address-branch-choice>span{
+  color:#f2f2ef!important;
+  font-size:12px;
+  font-weight:850;
+}
+.address-branch-choice>small{
+  color:#83837f!important;
+  font-size:10px;
+}
+.address-branch-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:3px;
+}
+.address-branch-grid>button{
+  min-width:0;
+  min-height:82px;
+  padding:12px;
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr) 20px;
+  align-items:center;
+  gap:8px;
+  text-align:left;
+  border:1px solid #393939;
+  border-radius:14px;
+  background:#202020;
+  color:#fff;
+  cursor:pointer;
+}
+.address-branch-grid>button:hover{
+  border-color:#555;
+}
+.address-branch-grid>button.active{
+  border-color:var(--kyo-orange);
+  background:#2a211a;
+}
+.address-branch-grid>button>svg:first-child{
+  color:var(--kyo-orange);
+}
+.address-branch-grid>button>svg:last-child{
+  color:var(--kyo-orange);
+}
+.address-branch-grid>button>span{
+  min-width:0;
+  display:grid;
+  gap:4px;
+}
+.address-branch-grid>button strong{
+  color:#fff!important;
+  font-size:11px;
+}
+.address-branch-grid>button small{
+  color:#888!important;
+  font-size:8px;
+  line-height:1.3;
+}
+
+/* Header dropdown readability */
+.destination-menu,
+.destination-menu *{
+  color:inherit;
+}
+.destination-menu .destination-title,
+.destination-menu .pickup-title{
+  color:#a5a5a1!important;
+}
+.destination-menu .destination-address-main strong,
+.destination-menu .pickup-option strong,
+.destination-menu .add-location strong{
+  color:#f4f4f2!important;
+}
+.destination-menu .destination-address-main small,
+.destination-menu .pickup-option small,
+.destination-menu .add-location small{
+  color:#969692!important;
+}
+.destination-menu .destination-address-main,
+.destination-menu .pickup-option,
+.destination-menu .add-location,
+.destination-menu .destination-edit{
+  color:#fff!important;
+}
+.destination-menu .destination-edit svg{
+  color:#aaa!important;
+}
+.destination-menu .destination-edit:hover svg{
+  color:var(--kyo-orange)!important;
+}
+
+/* Route cards in kitchen: restore larger presence */
+.route-strip{
+  max-width:1500px!important;
+  width:100%!important;
+  margin:18px auto 0!important;
+  padding:16px!important;
+}
+.route-order-row{
+  min-height:88px!important;
+  padding:16px 18px!important;
+}
+.route-order-info strong{
+  font-size:14px!important;
+}
+.route-order-info small{
+  font-size:11px!important;
+  line-height:1.45!important;
+}
+.route-order-actions button{
+  min-height:44px!important;
+  padding:0 16px!important;
+  font-size:11px!important;
+}
+
+/* keep add-address layout usable on mobile */
+@media(max-width:560px){
+  .address-branch-grid{
+    grid-template-columns:1fr 1fr!important;
+    gap:7px!important;
+  }
+  .address-branch-grid>button{
+    min-height:94px!important;
+    padding:9px!important;
+    grid-template-columns:20px minmax(0,1fr)!important;
+  }
+  .address-branch-grid>button>svg:last-child{
+    grid-column:1/-1;
+    justify-self:end;
+    margin-top:-18px;
+  }
+}

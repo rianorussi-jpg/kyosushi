@@ -221,8 +221,89 @@ function ProductCustomizeModal({product,branchId,onClose,onAdd,rewardFree=false,
   return <div className="modal-backdrop product-config-backdrop"><div className="product-config-modal"><div className="modal-head"><div><small>PERSONALIZA TU PEDIDO</small><h2>{product.name}</h2></div><button onClick={onClose}><X/></button></div><div className="config-product-head"><img src={product.image||product.image_url}/><div><p>{product.desc||product.description}</p><strong>{rewardFree?'GRATIS':productDisplayPrice(product)}</strong></div></div>{templates.map(t=><section className="config-group" key={t.id}><div className="config-group-title"><div><h3>{t.name}</h3><small>{t.required?'Obligatorio':'Opcional'} · {t.input_type==='single'?'Elige una':t.input_type==='multiple'?`Marca hasta ${t.max_select||'varias'}`:'Elige cantidades'}</small></div>{t.required&&<b>REQUERIDO</b>}</div><div className="config-options">{(t.options||[]).map(opt=>{const n=selected[t.id]?.[opt.id]||0;const unavailable=branchId&&opt.branchAvailability?.[branchId]===false;return <div className={`config-option ${n?'selected':''} ${unavailable?'option-unavailable':''}`} key={opt.id}><span><strong>{opt.name}</strong><small>{unavailable?'No disponible en esta sucursal':rewardFree?'Incluido gratis':Number(opt.price)>0?(Number(product.price||0)===0&&t.required?money(opt.price):`+ ${money(opt.price)}`):'Sin costo'}</small></span>{t.input_type==='quantity'?<div className="config-qty"><button disabled={unavailable} onClick={()=>qty(t,opt,-1)}><Minus size={15}/></button><b>{n}</b><button disabled={unavailable} onClick={()=>qty(t,opt,1)}><Plus size={15}/></button></div>:<button disabled={unavailable} className="config-check" onClick={()=>choose(t,opt)}>{n?<Check size={16}/>:null}</button>}</div>})}</div></section>)}<label className="product-note"><span>Nota para este producto <small>(opcional)</small></span><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Ej. Sin cebollín, salsa aparte..." maxLength={250}/></label>{error&&<div className="form-message">{error}</div>}<div className="product-config-footer"><button className="primary full" onClick={finish}>{actionLabel}</button></div></div></div>
 }
 
-function LoginPage({auth}){const nav=useNavigate();const [mode,setMode]=useState('login');const [name,setName]=useState('');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);useEffect(()=>{if(auth.user)nav('/',{replace:true})},[auth.user]);const submit=async e=>{e.preventDefault();setError('');if(!supabase){setError('Falta configurar Supabase.');return}setBusy(true);const result=mode==='register'?await supabase.auth.signUp({email,password,options:{data:{full_name:name}}}):await supabase.auth.signInWithPassword({email,password});setBusy(false);if(result.error){setError(result.error.message);return}if(mode==='register'&&!result.data.session){setError('Cuenta creada. Revisa tu correo para confirmar el acceso.');return}nav('/')};return <main className="auth-page"><button className="back" onClick={()=>nav(-1)}><ArrowLeft/></button><div className="auth-brand"><Brand/><p>Tu KYO. Tus rewards. Tu pedido.</p></div><form className="auth-card" onSubmit={submit}><div className="auth-tabs"><button type="button" className={mode==='login'?'active':''} onClick={()=>setMode('login')}>Iniciar sesión</button><button type="button" className={mode==='register'?'active':''} onClick={()=>setMode('register')}>Crear cuenta</button></div>{mode==='register'&&<label>Nombre<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></label>}<label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="correo@ejemplo.com"/></label><label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>{error&&<div className="form-message">{error}</div>}<button disabled={busy} className="primary full">{busy?'Procesando...':mode==='login'?'Entrar a mi cuenta':'Crear mi cuenta'}</button></form></main>}
+const phoneCountries=[
+  {code:'+52',flag:'🇲🇽',name:'México'},
+  {code:'+1',flag:'🇺🇸',name:'Estados Unidos / Canadá'},
+  {code:'+34',flag:'🇪🇸',name:'España'},
+  {code:'+54',flag:'🇦🇷',name:'Argentina'},
+  {code:'+57',flag:'🇨🇴',name:'Colombia'},
+  {code:'+56',flag:'🇨🇱',name:'Chile'},
+  {code:'+51',flag:'🇵🇪',name:'Perú'}
+]
 
+function LoginPage({auth}){
+  const nav=useNavigate()
+  const [mode,setMode]=useState('login')
+  const [name,setName]=useState('')
+  const [countryCode,setCountryCode]=useState('+52')
+  const [phone,setPhone]=useState('')
+  const [email,setEmail]=useState('')
+  const [password,setPassword]=useState('')
+  const [confirmPassword,setConfirmPassword]=useState('')
+  const [error,setError]=useState('')
+  const [busy,setBusy]=useState(false)
+
+  useEffect(()=>{if(auth.user)nav('/',{replace:true})},[auth.user])
+
+  const submit=async e=>{
+    e.preventDefault();setError('')
+    if(!supabase){setError('Falta configurar Supabase.');return}
+    if(mode==='register'){
+      if(phone.length!==10){setError('Tu número de teléfono debe tener exactamente 10 dígitos.');return}
+      if(password!==confirmPassword){setError('Las contraseñas no coinciden.');return}
+    }
+    setBusy(true)
+    const result=mode==='register'
+      ?await supabase.auth.signUp({
+        email,password,
+        options:{data:{full_name:name,phone:`${countryCode}${phone}`,phone_country_code:countryCode}}
+      })
+      :await supabase.auth.signInWithPassword({email,password})
+    setBusy(false)
+    if(result.error){setError(result.error.message);return}
+    if(mode==='register'&&!result.data.session){setError('Cuenta creada. Revisa tu correo para confirmar el acceso.');return}
+    nav('/')
+  }
+
+  return <main className="auth-page">
+    <button className="back" onClick={()=>nav(-1)}><ArrowLeft/></button>
+    <div className="auth-brand"><Brand/><p>Tu KYO. Tus rewards. Tu pedido.</p></div>
+    <form className="auth-card" onSubmit={submit}>
+      <div className="auth-tabs">
+        <button type="button" className={mode==='login'?'active':''} onClick={()=>setMode('login')}>Iniciar sesión</button>
+        <button type="button" className={mode==='register'?'active':''} onClick={()=>setMode('register')}>Crear cuenta</button>
+      </div>
+      {mode==='register'&&<>
+        <label>Nombre<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></label>
+        <label>Número de teléfono
+          <div className="phone-register-field">
+            <select aria-label="Código de país" value={countryCode} onChange={e=>setCountryCode(e.target.value)}>
+              {phoneCountries.map(c=><option key={`${c.code}-${c.name}`} value={c.code}>{c.flag} {c.code}</option>)}
+            </select>
+            <input
+              required
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              pattern="[0-9]{10}"
+              minLength="10"
+              maxLength="10"
+              value={phone}
+              onChange={e=>setPhone(e.target.value.replace(/\D/g,'').slice(0,10))}
+              placeholder="4421234567"
+            />
+          </div>
+          <small className={`phone-digit-count ${phone.length===10?'complete':''}`}>{phone.length}/10 dígitos</small>
+        </label>
+      </>}
+      <label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="correo@ejemplo.com"/></label>
+      <label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>
+      {mode==='register'&&<label>Confirmar contraseña<input type="password" minLength="6" required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="••••••••"/></label>}
+      {error&&<div className="form-message">{error}</div>}
+      <button disabled={busy} className="primary full">{busy?'Procesando...':mode==='login'?'Entrar a mi cuenta':'Crear mi cuenta'}</button>
+    </form>
+  </main>
+}
 function AddressModal({auth,branches,onClose,onSaved,initial=null}){const [form,setForm]=useState(initial?{...emptyAddress,...initial}:{...emptyAddress});const [busy,setBusy]=useState(false);const [error,setError]=useState('');const save=async e=>{e.preventDefault();if(!supabase||!auth.user)return;setBusy(true);setError('');const payload={user_id:auth.user.id,label:form.label||'Casa',street:form.street,exterior_number:form.exterior_number,interior_number:form.interior_number||null,neighborhood:form.neighborhood,postal_code:form.postal_code,branch_id:form.branch_id,notes:form.notes||null,address_line:formatAddress(form)};const result=initial?.id?await supabase.from('addresses').update(payload).eq('id',initial.id).select().single():await supabase.from('addresses').insert(payload).select().single();setBusy(false);if(result.error){setError(result.error.message);return}onSaved(result.data)};return <div className="modal-backdrop"><form className="address-editor" onSubmit={save}><div className="modal-head"><div><small>{initial?'EDITAR DIRECCIÓN':'NUEVA DIRECCIÓN'}</small><h2>{initial?'Edita tu dirección':'¿Dónde entregamos?'}</h2></div><button type="button" onClick={onClose}><X/></button></div><div className="address-form-grid"><label className="admin-field full-span"><span>Nombre de la dirección</span><input value={form.label} onChange={e=>setForm({...form,label:e.target.value})} placeholder="Casa, Oficina..."/></label><label className="admin-field full-span"><span>Dirección / calle</span><input required value={form.street} onChange={e=>setForm({...form,street:e.target.value})} placeholder="Av. Paseo de..."/></label><label className="admin-field"><span>Número exterior</span><input required value={form.exterior_number} onChange={e=>setForm({...form,exterior_number:e.target.value})}/></label><label className="admin-field"><span>Número interior</span><input value={form.interior_number||''} onChange={e=>setForm({...form,interior_number:e.target.value})} placeholder="Opcional"/></label><label className="admin-field"><span>Colonia</span><input required value={form.neighborhood} onChange={e=>setForm({...form,neighborhood:e.target.value})}/></label><label className="admin-field"><span>Código postal</span><input required inputMode="numeric" value={form.postal_code} onChange={e=>setForm({...form,postal_code:e.target.value})}/></label><label className="admin-field full-span"><span>Sucursal que atenderá esta dirección</span><select value={form.branch_id} onChange={e=>setForm({...form,branch_id:e.target.value})}>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><label className="admin-field full-span"><span>Detalles o referencias</span><textarea value={form.notes||''} onChange={e=>setForm({...form,notes:e.target.value})} placeholder="Portón negro, frente al parque, tocar timbre..."/></label></div>{error&&<div className="form-message">{error}</div>}<div className="modal-actions"><button type="button" className="secondary-btn" onClick={onClose}>Cancelar</button><button className="primary" disabled={busy}>{busy?'Guardando...':'Guardar dirección'}</button></div></form></div>}
 
 function ProfilePage({auth,addressBook,catalog}){

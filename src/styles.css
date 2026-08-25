@@ -902,3 +902,55 @@
 .topbar.no-brand{
   justify-content:flex-end;
 }
+
+
+/* ===== v19 registro con teléfono ===== */
+.phone-register-field{
+  display:grid;
+  grid-template-columns:112px minmax(0,1fr);
+  gap:8px;
+  margin-top:7px;
+}
+.auth-card .phone-register-field select,
+.auth-card .phone-register-field input{
+  width:100%;
+  min-width:0;
+  margin:0;
+}
+.auth-card .phone-register-field select{
+  cursor:pointer;
+  padding-left:10px;
+  padding-right:6px;
+}
+.phone-digit-count{
+  display:block;
+  text-align:right;
+  margin-top:5px;
+  color:#999;
+  font-size:9px;
+  font-weight:700;
+}
+.phone-digit-count.complete{color:#36744b}
+.ticket-customer{
+  margin:10px 0 3px;
+  padding:9px 10px;
+  border-radius:10px;
+  background:#f4f1ec;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.ticket-customer strong{font-size:12px}
+.ticket-customer span{font-size:11px;font-weight:800;color:#555}
+.admin-client-detail em{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  font-style:normal;
+  color:#777;
+  font-weight:700;
+}
+@media(max-width:420px){
+  .phone-register-field{grid-template-columns:105px minmax(0,1fr)}
+}

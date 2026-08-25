@@ -470,3 +470,29 @@
 .product-card:hover .product-img img{
   transform:scale(1.16)!important;
 }
+
+
+/* ===== editor de giro de fotografías de producto ===== */
+.image-editor-preview{display:grid;gap:10px}
+.image-preview-stage{
+  width:min(100%,520px);height:300px;overflow:hidden;border-radius:16px;
+  border:1px solid #e0ddd8;background:#f3f0eb;display:grid;place-items:center
+}
+.image-preview-stage .editor-preview{
+  display:block;max-width:86%;max-height:86%;width:auto;height:auto;object-fit:contain;
+  transform-origin:center center;transition:transform .18s ease
+}
+.image-rotate-controls{
+  width:min(100%,520px);display:flex;align-items:center;justify-content:center;gap:10px
+}
+.image-rotate-controls button{
+  border:1px solid #dcd8d2;background:#fff;border-radius:11px;padding:9px 12px;
+  display:flex;align-items:center;gap:7px;font-weight:800;cursor:pointer
+}
+.image-rotate-controls b{
+  min-width:42px;text-align:center;font-size:12px;color:#777
+}
+@media(max-width:560px){
+  .image-preview-stage{height:230px}
+  .image-rotate-controls button span{display:none}
+}

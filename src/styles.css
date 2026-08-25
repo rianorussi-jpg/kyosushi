@@ -303,3 +303,120 @@
 .kitchen-item-note p{margin:0!important;font-size:14px;line-height:1.35}
 .admin-item-customizations{display:grid;gap:3px;margin-top:5px}
 .admin-item-customizations span{font-size:12px;color:#555}
+
+
+/* ===== v12: modo cocina — cada producto y sus detalles en bloques separados ===== */
+.ticket-items{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:0!important;
+  padding:10px 0!important;
+}
+.ticket-items .kitchen-item-detail{
+  display:block!important;
+  grid-template-columns:none!important;
+  width:100%!important;
+  padding:14px 0!important;
+  border-bottom:1px dashed #d9d5cf!important;
+}
+.ticket-items .kitchen-item-detail:last-child{border-bottom:0!important}
+.ticket-items .kitchen-item-detail > *{
+  grid-column:auto!important;
+}
+.ticket-items .kitchen-product-line{
+  display:flex!important;
+  grid-template-columns:none!important;
+  align-items:flex-start!important;
+  gap:8px!important;
+  width:100%!important;
+  line-height:1.25!important;
+}
+.ticket-items .kitchen-product-line b{
+  flex:0 0 auto!important;
+  min-width:28px!important;
+  color:#b82027!important;
+  font-size:15px!important;
+}
+.ticket-items .kitchen-product-line strong{
+  display:block!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  font-size:16px!important;
+  line-height:1.3!important;
+  color:#151515!important;
+  overflow-wrap:anywhere!important;
+}
+.ticket-items .kitchen-customizations{
+  display:flex!important;
+  flex-direction:column!important;
+  grid-template-columns:none!important;
+  gap:10px!important;
+  width:calc(100% - 36px)!important;
+  margin:10px 0 0 36px!important;
+  padding:11px 12px!important;
+  background:#f6f6f6!important;
+  border-radius:10px!important;
+  box-sizing:border-box!important;
+}
+.ticket-items .kitchen-custom-group{
+  display:flex!important;
+  flex-direction:column!important;
+  grid-template-columns:none!important;
+  gap:4px!important;
+  width:100%!important;
+}
+.ticket-items .kitchen-custom-group strong{
+  display:block!important;
+  color:#666!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  letter-spacing:.08em!important;
+  text-transform:uppercase!important;
+}
+.ticket-items .kitchen-custom-group span{
+  display:block!important;
+  width:100%!important;
+  padding:3px 0 3px 8px!important;
+  border-left:2px solid #d51d2c!important;
+  color:#171717!important;
+  font-size:14px!important;
+  line-height:1.35!important;
+  font-weight:700!important;
+  box-sizing:border-box!important;
+  overflow-wrap:anywhere!important;
+}
+.ticket-items .kitchen-item-note{
+  display:block!important;
+  grid-template-columns:none!important;
+  width:calc(100% - 36px)!important;
+  margin:9px 0 0 36px!important;
+  padding:10px 12px!important;
+  box-sizing:border-box!important;
+  border:1px solid #f1d794!important;
+  border-radius:10px!important;
+  background:#fff4d8!important;
+}
+.ticket-items .kitchen-item-note strong{
+  display:block!important;
+  margin:0 0 4px!important;
+  color:#6d5200!important;
+  font-size:10px!important;
+  line-height:1.2!important;
+  text-transform:uppercase!important;
+  letter-spacing:.07em!important;
+}
+.ticket-items .kitchen-item-note p{
+  display:block!important;
+  margin:0!important;
+  color:#2b240e!important;
+  font-size:14px!important;
+  line-height:1.4!important;
+  overflow-wrap:anywhere!important;
+}
+@media(max-width:520px){
+  .ticket-items .kitchen-customizations,
+  .ticket-items .kitchen-item-note{
+    width:100%!important;
+    margin-left:0!important;
+  }
+}

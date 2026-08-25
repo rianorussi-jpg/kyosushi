@@ -954,3 +954,106 @@
 @media(max-width:420px){
   .phone-register-field{grid-template-columns:105px minmax(0,1fr)}
 }
+
+
+/* ===== v20: pedido mínimo + configuración del panel ===== */
+.minimum-order-notice{
+  margin:12px 0;
+  padding:12px 14px;
+  border:1px solid #ebd4a7;
+  border-radius:13px;
+  background:#fff8e8;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.minimum-order-notice strong{font-size:12px;color:#6b4d12}
+.minimum-order-notice span{font-size:11px;color:#856a34;text-align:right}
+.checkout-bar .primary:disabled{opacity:.45;cursor:not-allowed}
+
+.admin-settings-page{
+  display:grid;
+  gap:16px;
+  max-width:900px;
+}
+.admin-settings-card{
+  background:#fff;
+  border:1px solid #e5e1dc;
+  border-radius:18px;
+  padding:20px;
+}
+.settings-card-head{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:18px;
+}
+.settings-card-head>span{
+  width:42px;height:42px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  background:#171717;
+  color:#fff;
+  flex:0 0 auto;
+}
+.settings-card-head>span svg{width:19px}
+.settings-card-head>div{display:grid;gap:3px}
+.settings-card-head small{font-size:9px;letter-spacing:.1em;font-weight:900;color:#999}
+.settings-card-head h2{margin:0;font-size:19px}
+.settings-card-head p{margin:0;color:#777;font-size:12px;line-height:1.45}
+.settings-number-field{max-width:240px}
+.settings-money-input{
+  display:grid;
+  grid-template-columns:38px 1fr;
+  border:1px solid #ddd8d2;
+  border-radius:11px;
+  overflow:hidden;
+  background:#fff;
+}
+.settings-money-input b{
+  display:grid;
+  place-items:center;
+  background:#f4f1ec;
+  border-right:1px solid #ddd8d2;
+}
+.settings-money-input input{
+  border:0!important;
+  border-radius:0!important;
+}
+.settings-two-columns{
+  display:grid;
+  grid-template-columns:180px minmax(280px,1fr);
+  gap:12px;
+}
+.settings-reward-preview{
+  margin-top:14px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:11px;
+  border-radius:14px;
+  background:#f7f5f1;
+  border:1px solid #e8e3dc;
+}
+.settings-reward-preview img{
+  width:70px;height:62px;
+  border-radius:10px;
+  object-fit:cover;
+  background:#eee;
+}
+.settings-reward-preview span{display:grid;gap:2px}
+.settings-reward-preview small{font-size:8px;letter-spacing:.1em;font-weight:900;color:#999}
+.settings-reward-preview strong{font-size:14px}
+.settings-reward-preview em{font-style:normal;font-size:11px;color:#8d3034;font-weight:800}
+.settings-save-bar{
+  display:flex;
+  justify-content:flex-end;
+  padding:4px 0 20px;
+}
+@media(max-width:700px){
+  .settings-two-columns{grid-template-columns:1fr}
+  .minimum-order-notice{align-items:flex-start;flex-direction:column}
+  .minimum-order-notice span{text-align:left}
+}

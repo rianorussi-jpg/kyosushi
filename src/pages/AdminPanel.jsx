@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { RefreshCw, ShieldCheck, LayoutDashboard, Utensils, LogOut, Plus, Package, MapPin, Clock3, Pencil, X, Upload, Trash2, Save, ClipboardList, DollarSign, RotateCcw, RotateCw, ZoomIn, ZoomOut } from 'lucide-react'
+import { RefreshCw, ShieldCheck, LayoutDashboard, Utensils, LogOut, Plus, Package, MapPin, Clock3, Pencil, X, Upload, Trash2, Save, ClipboardList, DollarSign, RotateCcw, RotateCw, ZoomIn, ZoomOut, Settings } from 'lucide-react'
 import { supabase, MENU_BUCKET } from '../supabase'
 
 const money = n => `$${Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits: 2})}`
@@ -23,19 +23,113 @@ function AdminLogin(){
 }
 
 export function AdminPanel({auth,catalog}){
-  const [tab,setTab]=useState('orders'); const [orders,setOrders]=useState([]); const [editing,setEditing]=useState(null); const [creating,setCreating]=useState(false)
-  const loadOrders=async()=>{if(!supabase)return; const {data}=await supabase.from('orders').select('*, order_items(*), profiles(full_name,phone)').order('created_at',{ascending:false}).limit(1000);setOrders(data||[])}
-  useEffect(()=>{loadOrders(); if(!supabase) return; const ch=supabase.channel('admin-orders').on('postgres_changes',{event:'*',schema:'public',table:'orders'},loadOrders).subscribe(); return ()=>{supabase.removeChannel(ch)}},[])
-  const updateStatus=async(id,status)=>{await supabase.from('orders').update({status}).eq('id',id);loadOrders();if(status==='delivered')auth.refreshProfile()}
-  const title=tab==='orders'?'Pedidos':tab==='records'?'Registros':'Menú'
-  return <main className="admin-shell"><aside className="admin-side"><Brand/><div className="admin-user"><div>{(auth.profile?.full_name||'A')[0]}</div><span><strong>{auth.profile?.full_name||'Administrador'}</strong><small>{auth.user.email}</small></span></div><nav><button className={tab==='orders'?'active':''} onClick={()=>setTab('orders')}><LayoutDashboard/> Pedidos</button><button className={tab==='records'?'active':''} onClick={()=>setTab('records')}><ClipboardList/> Registros</button><button className={tab==='menu'?'active':''} onClick={()=>setTab('menu')}><Utensils/> Menú</button></nav><button className="admin-logout" onClick={()=>supabase.auth.signOut()}><LogOut/> Cerrar sesión</button></aside><section className="admin-main"><header><div><span>KYO CONTROL</span><h1>{title}</h1></div>{tab==='menu'&&<button className="primary" onClick={()=>setCreating(true)}><Plus/> Nuevo producto</button>}</header>{tab==='orders'?<AdminOrders orders={orders} updateStatus={updateStatus}/>:tab==='records'?<AdminRecords orders={orders}/>:<AdminMenuManager catalog={catalog} onEdit={setEditing}/>}</section>{(editing||creating)&&<ProductEditor product={editing} catalog={catalog} onClose={()=>{setEditing(null);setCreating(false)}} onSaved={()=>{setEditing(null);setCreating(false);catalog.refresh()}}/>}</main>
+  const [tab,setTab]=useState('orders')
+  const [orders,setOrders]=useState([])
+  const [editing,setEditing]=useState(null)
+  const [creating,setCreating]=useState(false)
+
+  const loadOrders=async()=>{
+    if(!supabase)return
+    const {data}=await supabase.from('orders').select('*, order_items(*), profiles(full_name,phone)').order('created_at',{ascending:false}).limit(1000)
+    setOrders(data||[])
+  }
+
+  useEffect(()=>{
+    loadOrders()
+    if(!supabase)return
+    const ch=supabase.channel('admin-orders').on('postgres_changes',{event:'*',schema:'public',table:'orders'},loadOrders).subscribe()
+    return()=>{supabase.removeChannel(ch)}
+  },[])
+
+  const updateStatus=async(id,status)=>{
+    await supabase.from('orders').update({status}).eq('id',id)
+    loadOrders()
+    if(status==='delivered')auth.refreshProfile()
+  }
+
+  const title=tab==='orders'?'Pedidos':tab==='records'?'Registros':tab==='settings'?'Configuración':'Menú'
+
+  return <main className="admin-shell">
+    <aside className="admin-side">
+      <Brand/>
+      <div className="admin-user"><div>{(auth.profile?.full_name||'A')[0]}</div><span><strong>{auth.profile?.full_name||'Administrador'}</strong><small>{auth.user.email}</small></span></div>
+      <nav>
+        <button className={tab==='orders'?'active':''} onClick={()=>setTab('orders')}><LayoutDashboard/> Pedidos</button>
+        <button className={tab==='records'?'active':''} onClick={()=>setTab('records')}><ClipboardList/> Registros</button>
+        <button className={tab==='menu'?'active':''} onClick={()=>setTab('menu')}><Utensils/> Menú</button>
+        <button className={tab==='settings'?'active':''} onClick={()=>setTab('settings')}><Settings/> Configuración</button>
+      </nav>
+      <button className="admin-logout" onClick={()=>supabase.auth.signOut()}><LogOut/> Cerrar sesión</button>
+    </aside>
+    <section className="admin-main">
+      <header><div><span>KYO CONTROL</span><h1>{title}</h1></div>{tab==='menu'&&<button className="primary" onClick={()=>setCreating(true)}><Plus/> Nuevo producto</button>}</header>
+      {tab==='orders'
+        ?<AdminOrders orders={orders} updateStatus={updateStatus}/>
+        :tab==='records'
+          ?<AdminRecords orders={orders}/>
+          :tab==='settings'
+            ?<AdminSettings catalog={catalog}/>
+            :<AdminMenuManager catalog={catalog} onEdit={setEditing}/>}
+    </section>
+    {(editing||creating)&&<ProductEditor product={editing} catalog={catalog} onClose={()=>{setEditing(null);setCreating(false)}} onSaved={()=>{setEditing(null);setCreating(false);catalog.refresh()}}/>}
+  </main>
 }
 
+function AdminSettings({catalog}){
+  const [minimum,setMinimum]=useState(catalog.settings?.minimum_order||200)
+  const [rewardPoints,setRewardPoints]=useState(catalog.settings?.points_reward_cost||250)
+  const [rewardProduct,setRewardProduct]=useState(catalog.settings?.points_reward_product_id||'')
+  const [busy,setBusy]=useState(false)
+  const [message,setMessage]=useState('')
+
+  useEffect(()=>{
+    setMinimum(catalog.settings?.minimum_order||200)
+    setRewardPoints(catalog.settings?.points_reward_cost||250)
+    setRewardProduct(catalog.settings?.points_reward_product_id||'')
+  },[catalog.settings?.minimum_order,catalog.settings?.points_reward_cost,catalog.settings?.points_reward_product_id])
+
+  const save=async()=>{
+    setBusy(true);setMessage('')
+    const payload={
+      id:'main',
+      minimum_order:Math.max(0,Number(minimum||0)),
+      points_reward_cost:Math.max(1,Math.round(Number(rewardPoints||1))),
+      points_reward_product_id:rewardProduct||null,
+      updated_at:new Date().toISOString()
+    }
+    const {error}=await supabase.from('app_settings').upsert(payload,{onConflict:'id'})
+    setBusy(false)
+    if(error)return setMessage(error.message)
+    await catalog.refresh()
+    setMessage('Configuración guardada.')
+  }
+
+  const grouped=(catalog.categoryObjects||[]).filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order)
+
+  return <div className="admin-settings-page">
+    <section className="admin-settings-card">
+      <div className="settings-card-head"><span><DollarSign/></span><div><small>PEDIDOS</small><h2>Pedido mínimo</h2><p>El subtotal de productos debe alcanzar esta cantidad antes de confirmar.</p></div></div>
+      <label className="admin-field settings-number-field"><span>Monto mínimo</span><div className="settings-money-input"><b>$</b><input type="number" min="0" step="1" value={minimum} onChange={e=>setMinimum(e.target.value)}/></div></label>
+    </section>
+
+    <section className="admin-settings-card">
+      <div className="settings-card-head"><span><Package/></span><div><small>KYO REWARDS</small><h2>Reward por puntos</h2><p>Escoge el producto que se regalará y cuántos puntos necesita el cliente para canjearlo.</p></div></div>
+      <div className="settings-two-columns">
+        <label className="admin-field"><span>Costo en puntos</span><input type="number" min="1" step="1" value={rewardPoints} onChange={e=>setRewardPoints(e.target.value)}/></label>
+        <label className="admin-field"><span>Producto gratis</span><select value={rewardProduct} onChange={e=>setRewardProduct(e.target.value)}><option value="">Selecciona un producto</option>{grouped.map(cat=><optgroup key={cat.id} label={cat.name}>{catalog.products.filter(p=>p.category===cat.name).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</optgroup>)}</select></label>
+      </div>
+      {rewardProduct&&<div className="settings-reward-preview">{(()=>{const p=catalog.products.find(x=>x.id===rewardProduct);return p?<><img src={p.image||p.image_url}/><span><small>REWARD ACTUAL</small><strong>{p.name}</strong><em>{rewardPoints} KYO Points</em></span></>:null})()}</div>}
+    </section>
+
+    {message&&<div className="form-message">{message}</div>}
+    <div className="settings-save-bar"><button className="primary" disabled={busy||!rewardProduct} onClick={save}><Save/> {busy?'Guardando...':'Guardar configuración'}</button></div>
+  </div>
+}
 function BranchFilter({value,onChange}){return <div className="admin-filter-row"><button className={value==='all'?'active':''} onClick={()=>onChange('all')}>Todas</button><button className={value==='zakia'?'active':''} onClick={()=>onChange('zakia')}>Zákia</button><button className={value==='milenio'?'active':''} onClick={()=>onChange('milenio')}>Milenio</button></div>}
 
 function AdminOrders({orders,updateStatus}){
   const [branch,setBranch]=useState('all'); const filtered=orders.filter(o=>branch==='all'||o.branch_id===branch)
-  return <><div className="admin-section-toolbar"><div><small>FILTRAR SUCURSAL</small><BranchFilter value={branch} onChange={setBranch}/></div></div><div className="admin-orders">{filtered.length===0?<div className="admin-empty"><Package/><h3>No hay pedidos</h3><p>No hay pedidos para este filtro.</p></div>:filtered.map(o=><article key={o.id}><div className="admin-order-top"><span><small>PEDIDO</small><strong>#{String(o.order_number).padStart(4,'0')}</strong></span><span className={`branch-pill ${o.branch_id}`}>{o.branch_id==='zakia'?'ZÁKIA':'MILENIO'}</span><span className={`admin-status ${o.status}`}>{statusLabels[o.status]}</span><span className="admin-client-detail"><small>CLIENTE</small><strong>{o.profiles?.full_name||'Cliente KYO'}</strong>{o.profiles?.phone&&<em>{o.profiles.phone}</em>}</span><span><small>TOTAL</small><strong>{money(o.total)}</strong></span></div><div className="admin-order-items-detail">{o.order_items?.map(i=><div key={i.id}><strong>{i.quantity}× {i.product_name}</strong>{i.customizations?.length>0&&<div className="admin-item-customizations">{Object.entries(i.customizations.reduce((g,c)=>{const title=c.template_name||c.group_name||c.customization_name||c.title||'Personalización';(g[title]??=[]).push(c);return g},{})).map(([title,rows])=><span key={title}><b>{title}:</b> {rows.map(c=>c.label||c.option_name||c.name).join(', ')}</span>)}</div>}{i.item_note&&<em><b>Nota:</b> {i.item_note}</em>}</div>)}</div><div className="admin-order-meta"><span><MapPin/> {o.branch_id==='zakia'?'KYO Zákia':'KYO Milenio'} · {o.fulfillment_type==='delivery'?'Delivery':'Pickup'}{o.delivery_address?` · ${o.delivery_address}`:''}</span><span><Clock3/> {new Date(o.created_at).toLocaleString('es-MX')}</span></div><div className="status-actions">{['preparing','ready','on_the_way','delivered','cancelled'].map(s=><button key={s} className={o.status===s?'active':''} onClick={()=>updateStatus(o.id,s)}>{statusLabels[s]}</button>)}</div></article>)}</div></>
+  return <><div className="admin-section-toolbar"><div><small>FILTRAR SUCURSAL</small><BranchFilter value={branch} onChange={setBranch}/></div></div><div className="admin-orders">{filtered.length===0?<div className="admin-empty"><Package/><h3>No hay pedidos</h3><p>No hay pedidos para este filtro.</p></div>:filtered.map(o=><article key={o.id}><div className="admin-order-top"><span><small>PEDIDO</small><strong>#{String(o.order_number).padStart(4,'0')}</strong></span><span className={`branch-pill ${o.branch_id}`}>{o.branch_id==='zakia'?'ZÁKIA':'MILENIO'}</span><span className={`admin-status ${o.status}`}>{statusLabels[o.status]}</span><span className="admin-client-detail"><small>CLIENTE</small><strong>{o.profiles?.full_name||'Cliente KYO'}</strong>{o.profiles?.phone&&<em>{o.profiles.phone}</em>}</span><span><small>TOTAL</small><strong>{money(o.total)}</strong></span></div><div className="admin-order-items-detail">{o.order_items?.map(i=><div key={i.id}><strong>{i.quantity}× {i.product_name}</strong>{i.customizations?.length>0&&<div className="admin-item-customizations">{Object.entries(i.customizations.reduce((g,c)=>{const title=c.template_name||c.group_name||c.customization_name||c.title||'Personalización';(g[title]??=[]).push(c);return g},{})).map(([title,rows])=><span key={title}><b>{title}:</b> {rows.map(c=>c.label||c.option_name||c.name).join(', ')}</span>)}</div>}{i.item_note&&<em><b>Nota:</b> {i.item_note}</em>}</div>)}</div><div className="admin-order-meta"><span><MapPin/> {o.branch_id==='zakia'?'KYO Zákia':'KYO Milenio'} · {o.fulfillment_type==='delivery'?'Delivery':'Pickup'}{o.delivery_address?` · ${o.delivery_address}`:''}</span><span><Clock3/> {new Date(o.created_at).toLocaleString('es-MX')}</span></div><div className="status-actions">{(o.fulfillment_type==='pickup'?['preparing','ready','delivered','cancelled']:['preparing','ready','on_the_way','delivered','cancelled']).map(s=><button key={s} className={o.status===s?'active':''} onClick={()=>updateStatus(o.id,s)}>{o.fulfillment_type==='pickup'&&s==='ready'?'Listo para recoger':statusLabels[s]}</button>)}</div></article>)}</div></>
 }
 
 function AdminRecords({orders}){

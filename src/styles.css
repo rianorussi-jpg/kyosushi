@@ -2121,3 +2121,420 @@ main{
   .bottom-nav{bottom:9px!important}
   .floating-cart{bottom:84px!important}
 }
+
+
+/* =========================================================
+   KYO v22.1 — ajustes de espaciado + Panel/Cocina claros
+   ========================================================= */
+
+/* Favoritos de Inicio: más aire real entre tarjetas */
+.product-scroller{
+  gap:20px!important;
+  padding-left:3px!important;
+  padding-right:3px!important;
+}
+
+/* Delivery / Pickup / Rewards: siempre los 3 en una sola línea */
+.quick-row{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:10px!important;
+}
+.quick-row>div{
+  min-width:0!important;
+  flex-direction:row!important;
+  text-align:left!important;
+  justify-content:flex-start!important;
+  padding:12px 14px!important;
+}
+.quick-row>div span{
+  min-width:0!important;
+  display:grid!important;
+  gap:2px!important;
+}
+.quick-row>div strong,
+.quick-row>div small{
+  white-space:nowrap!important;
+}
+
+/* Header: selector de dirección más compacto */
+.branch-btn,
+.destination-btn{
+  min-width:0!important;
+  width:auto!important;
+  max-width:330px!important;
+  height:50px!important;
+  padding:6px 9px!important;
+  gap:7px!important;
+}
+.branch-btn span{
+  min-width:0!important;
+  max-width:225px!important;
+}
+.branch-btn em{
+  max-width:205px!important;
+}
+.branch-btn>svg:last-child{
+  margin-left:1px!important;
+  flex:0 0 auto!important;
+}
+
+/* Personalización: elimina la franja blanca del footer */
+.product-config-footer{
+  position:sticky!important;
+  bottom:-1px!important;
+  margin:14px -2px -2px!important;
+  padding:12px 2px 2px!important;
+  background:linear-gradient(180deg,rgba(24,24,24,0),#181818 24%,#181818 100%)!important;
+  z-index:5!important;
+}
+.product-config-footer .primary{
+  background:var(--kyo-orange)!important;
+  color:#111!important;
+  border:0!important;
+  box-shadow:none!important;
+}
+
+/* Ver carrito: distancia clara respecto a navegación inferior */
+.floating-cart{
+  bottom:104px!important;
+}
+
+/* =========================================================
+   PANEL — vuelve a interfaz clara y de alto contraste
+   ========================================================= */
+.admin-shell{
+  background:#f1f2f3!important;
+  color:#171717!important;
+}
+.admin-side{
+  background:#ffffff!important;
+  color:#171717!important;
+  border-right:1px solid #dedede!important;
+}
+.admin-side .brand-mark{color:#111!important}
+.admin-side .brand-sub{color:#777!important}
+.admin-user{
+  background:#f5f5f5!important;
+  border-color:#e2e2e2!important;
+  color:#111!important;
+}
+.admin-user>div{
+  background:#171717!important;
+  color:#fff!important;
+}
+.admin-user strong{color:#111!important}
+.admin-user small{color:#777!important}
+.admin-side nav button{
+  background:transparent!important;
+  color:#626262!important;
+}
+.admin-side nav button:hover{
+  background:#f2f2f2!important;
+  color:#111!important;
+}
+.admin-side nav button.active{
+  background:#171717!important;
+  color:#fff!important;
+}
+.admin-side nav button.active svg{
+  color:#f47a1f!important;
+}
+.admin-logout{
+  color:#666!important;
+  border-color:#e0e0e0!important;
+}
+.admin-main{
+  background:#f1f2f3!important;
+  color:#171717!important;
+}
+.admin-main>header{
+  background:rgba(241,242,243,.95)!important;
+  color:#171717!important;
+  border-bottom:1px solid #dadada!important;
+}
+.admin-main>header span{color:#888!important}
+.admin-main>header h1{
+  color:#171717!important;
+  font-family:inherit!important;
+  font-weight:850!important;
+}
+.admin-orders>article,
+.admin-menu-category,
+.category-create-card,
+.admin-settings-card,
+.record-summary article,
+.admin-product-card-branch,
+.records-table,
+.template-builder,
+.custom-admin-section{
+  background:#fff!important;
+  color:#171717!important;
+  border-color:#dedede!important;
+  box-shadow:none!important;
+}
+.admin-orders>article small,
+.admin-product-card-info>small,
+.admin-product-card-info>span,
+.settings-card-head p,
+.settings-card-head small{
+  color:#777!important;
+}
+.admin-order-items-detail,
+.admin-order-meta{
+  color:#444!important;
+}
+.admin-order-items-detail>div{
+  border-color:#e5e5e5!important;
+}
+.admin-item-customizations{
+  background:#f7f7f7!important;
+  color:#333!important;
+}
+.admin-item-customizations span,
+.admin-item-customizations b{
+  color:#333!important;
+}
+.admin-product-card-branch{
+  background:#fafafa!important;
+}
+.admin-product-card-branch img{
+  background:#ededed!important;
+}
+.admin-edit-product{
+  background:#fff!important;
+  border-color:#d8d8d8!important;
+  color:#222!important;
+}
+.admin-filter-row{
+  background:#e4e5e6!important;
+}
+.admin-filter-row button{
+  color:#606060!important;
+  background:transparent!important;
+}
+.admin-filter-row button.active{
+  background:#171717!important;
+  color:#fff!important;
+}
+.admin-field span{color:#555!important}
+.admin-field input,
+.admin-field textarea,
+.admin-field select,
+.category-create-card input,
+.category-create-card select{
+  background:#fff!important;
+  color:#171717!important;
+  border-color:#d7d7d7!important;
+}
+.admin-field input:focus,
+.admin-field textarea:focus,
+.admin-field select:focus{
+  border-color:#999!important;
+  outline:none!important;
+}
+.settings-card-head>span{
+  background:#171717!important;
+  color:#fff!important;
+}
+.settings-card-head h2,
+.category-create-card h3,
+.admin-menu-category h2,
+.admin-subcategory-block h3{
+  color:#171717!important;
+}
+.settings-reward-preview{
+  background:#f6f6f6!important;
+  border-color:#dedede!important;
+  color:#171717!important;
+}
+.records-head{
+  background:#ededed!important;
+  color:#555!important;
+}
+.records-row{
+  color:#222!important;
+  border-color:#e5e5e5!important;
+}
+.branch-pill{
+  color:#fff!important;
+}
+.branch-availability-row button.available,
+.option-branch-toggles button.available{
+  background:#edf7ef!important;
+  color:#25703a!important;
+  border-color:#bbd9c2!important;
+}
+.branch-availability-row button.unavailable,
+.option-branch-toggles button.unavailable{
+  background:#fff0f0!important;
+  color:#a63232!important;
+  border-color:#e6bcbc!important;
+}
+.image-preview-stage{
+  background:#ededed!important;
+  border-color:#d8d8d8!important;
+}
+.image-rotate-controls button,
+.image-zoom-controls>button{
+  background:#fff!important;
+  color:#222!important;
+  border-color:#d7d7d7!important;
+}
+
+/* =========================================================
+   MODO COCINA — vuelve a claro, legible a distancia
+   ========================================================= */
+.kitchen-shell{
+  background:#ecebe8!important;
+  color:#151515!important;
+}
+.kitchen-head{
+  background:#111!important;
+  color:#fff!important;
+  border:0!important;
+}
+.kitchen-head span{color:#ff8a42!important}
+.kitchen-head p{color:#aaa!important}
+.kitchen-head button{
+  background:#292929!important;
+  color:#fff!important;
+}
+.kitchen-column{
+  background:#f8f7f4!important;
+  color:#151515!important;
+  border:0!important;
+}
+.kitchen-column>header h2{
+  color:#151515!important;
+  font-family:inherit!important;
+  font-weight:800!important;
+}
+.kitchen-column>header b{
+  background:#111!important;
+  color:#fff!important;
+}
+.kitchen-empty{
+  color:#777!important;
+  border-color:#ccc!important;
+}
+.kitchen-ticket{
+  background:#fff!important;
+  color:#151515!important;
+  border:1px solid #ddd!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.06)!important;
+}
+.ticket-top{
+  border-color:#e1e1e1!important;
+  color:#151515!important;
+}
+.ticket-top span{color:#777!important}
+.kitchen-product-line,
+.kitchen-product-line strong{
+  color:#151515!important;
+}
+.ticket-items .kitchen-customizations{
+  background:#f5f4f1!important;
+  color:#222!important;
+}
+.kitchen-custom-group>strong{
+  color:#555!important;
+}
+.ticket-items .kitchen-custom-group span{
+  color:#222!important;
+  border-left-color:#f47a1f!important;
+}
+.kitchen-item-note{
+  background:#fff4df!important;
+  color:#553b15!important;
+}
+.kitchen-item-note strong,
+.kitchen-item-note p{
+  color:#553b15!important;
+}
+.ticket-customer{
+  background:#f2f2f0!important;
+  color:#151515!important;
+}
+.ticket-customer span{color:#555!important}
+.ticket-meta{
+  color:#555!important;
+}
+.ticket-meta svg{color:#777!important}
+.ticket-foot{
+  border-color:#e1e1e1!important;
+}
+.ticket-foot strong{color:#151515!important}
+.ticket-foot button{
+  background:#111!important;
+  color:#fff!important;
+}
+.route-strip{
+  background:#fff!important;
+  color:#151515!important;
+  border:1px solid #ddd!important;
+}
+.route-strip>div span{color:#777!important}
+.route-strip button{
+  background:#111!important;
+  color:#fff!important;
+}
+
+/* móvil */
+@media(max-width:760px){
+  .quick-row{
+    width:calc(100% - 24px)!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+  .quick-row>div{
+    min-height:72px!important;
+    padding:9px 7px!important;
+    gap:6px!important;
+    flex-direction:column!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+  .quick-row svg{
+    width:30px!important;
+    height:30px!important;
+    padding:7px!important;
+  }
+  .quick-row strong{
+    font-size:10px!important;
+  }
+  .quick-row small{
+    font-size:7px!important;
+  }
+  .product-scroller{
+    gap:16px!important;
+  }
+  .branch-btn,
+  .destination-btn{
+    width:auto!important;
+    max-width:calc(100vw - 74px)!important;
+    padding-left:8px!important;
+    padding-right:7px!important;
+  }
+  .branch-btn span{max-width:180px!important}
+  .branch-btn em{max-width:155px!important}
+  .floating-cart{
+    bottom:108px!important;
+  }
+
+  /* panel móvil claro */
+  .admin-shell{background:#f1f2f3!important}
+  .admin-side{
+    background:#fff!important;
+    border-bottom:1px solid #ddd!important;
+  }
+  .admin-side nav button{
+    color:#666!important;
+  }
+  .admin-side nav button.active{
+    background:#171717!important;
+    color:#fff!important;
+  }
+  .admin-main{
+    background:#f1f2f3!important;
+  }
+}

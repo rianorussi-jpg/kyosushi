@@ -135,7 +135,7 @@ function App(){
   </div>
 }
 
-function Brand(){return <div className="brand"><span className="brand-mark">KYO</span><span className="brand-sub">JAPANESE SOUL FOOD</span></div>}
+function Brand(){return <div className="brand"><img className="brand-logo-img" src="/assets/logo.png" alt="KYO Sushi"/></div>}
 
 function formatAddress(a){
   if(!a)return ''

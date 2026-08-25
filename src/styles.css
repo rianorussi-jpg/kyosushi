@@ -854,3 +854,18 @@
   .success-track-step small{font-size:8px}
   .success-track-line{margin-top:14px}
 }
+
+
+/* ===== Logo KYO desde public/assets/logo.png ===== */
+.brand{display:flex;align-items:center;justify-content:flex-start}
+.brand-logo-img{
+  display:block;
+  width:auto;
+  height:44px;
+  max-width:150px;
+  object-fit:contain;
+  object-position:left center;
+}
+@media(max-width:800px){
+  .brand-logo-img{height:38px;max-width:132px}
+}

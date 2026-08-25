@@ -160,7 +160,27 @@ function ProductEditor({product,catalog,onClose,onSaved}){
   const [file,setFile]=useState(null); const [imageRotation,setImageRotation]=useState(0); const [imageZoom,setImageZoom]=useState(100); const [busy,setBusy]=useState(false); const [error,setError]=useState('')
   const [templates,setTemplates]=useState([]); const [assigned,setAssigned]=useState((product?.customizations||[]).map(x=>x.id)); const [assignedOrder,setAssignedOrder]=useState((product?.customizations||[]).map(x=>x.id)); const [showTemplate,setShowTemplate]=useState(false)
   const [template,setTemplate]=useState({name:'',input_type:'single',required:false,min_select:0,max_select:1,options:[{id:crypto.randomUUID(),name:'',price:0,branchAvailability:{zakia:true,milenio:true}}]}); const [editingTemplateId,setEditingTemplateId]=useState(null)
-  const loadTemplates=async()=>{const {data}=await supabase.from('customization_templates').select('*, customization_option_branch_availability(option_id,branch_id,available)').order('name');setTemplates((data||[]).map(t=>({...t,options:(t.options||[]).map(o=>({...o,branchAvailability:Object.fromEntries((t.customization_option_branch_availability||[]).filter(r=>r.option_id===o.id).map(r=>[r.branch_id,r.available]))}))}))}
+  const loadTemplates=async()=>{
+    const {data}=await supabase
+      .from('customization_templates')
+      .select('*, customization_option_branch_availability(option_id,branch_id,available)')
+      .order('name')
+
+    setTemplates((data||[]).map(t=>{
+      const availabilityRows=t.customization_option_branch_availability||[]
+      return {
+        ...t,
+        options:(t.options||[]).map(o=>({
+          ...o,
+          branchAvailability:Object.fromEntries(
+            availabilityRows
+              .filter(r=>r.option_id===o.id)
+              .map(r=>[r.branch_id,r.available])
+          )
+        }))
+      }
+    }))
+  }
   useEffect(()=>{loadTemplates()},[])
   const addOption=()=>setTemplate(t=>({...t,options:[...t.options,{id:crypto.randomUUID(),name:'',price:0,branchAvailability:{zakia:true,milenio:true}}]}))
   const updateOption=(id,key,value)=>setTemplate(t=>({...t,options:t.options.map(o=>o.id===id?{...o,[key]:value}:o)}))

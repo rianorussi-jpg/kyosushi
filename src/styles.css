@@ -568,3 +568,54 @@
   .template-option-branch-row{grid-template-columns:1fr 92px 36px!important}
   .template-option-branch-row .option-branch-toggles{grid-column:1/-1}
 }
+
+
+/* ===== v18: selector de rollo gratis del reto KYO ===== */
+.reward-roll-picker{
+  width:min(760px,calc(100vw - 28px));
+  max-height:86vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:22px;
+  padding:20px;
+  box-shadow:0 24px 70px rgba(0,0,0,.22)
+}
+.reward-roll-picker .modal-head p{
+  margin:4px 0 0;
+  color:#777;
+  font-size:12px;
+  line-height:1.4
+}
+.reward-roll-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:11px;
+  margin-top:16px
+}
+.reward-roll-option{
+  border:1px solid #e3dfda;
+  background:#faf9f7;
+  border-radius:15px;
+  padding:9px;
+  display:grid;
+  grid-template-columns:78px 1fr 22px;
+  align-items:center;
+  gap:10px;
+  text-align:left;
+  cursor:pointer
+}
+.reward-roll-option:hover{border-color:#c8c2ba;background:#fff}
+.reward-roll-option>img{
+  width:78px;height:68px;object-fit:cover;border-radius:11px;background:#f0ede8
+}
+.reward-roll-option>span{display:grid;gap:3px;min-width:0}
+.reward-roll-option small{
+  font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#888;font-weight:900
+}
+.reward-roll-option strong{font-size:14px;line-height:1.2}
+.reward-roll-option em{font-size:10px;color:#438058;font-style:normal;font-weight:800}
+.reward-roll-option>svg{width:18px;color:#888}
+@media(max-width:620px){
+  .reward-roll-grid{grid-template-columns:1fr}
+  .reward-roll-picker{padding:15px}
+}

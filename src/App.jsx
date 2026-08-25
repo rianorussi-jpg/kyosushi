@@ -98,7 +98,19 @@ function App(){
 
   const add=p=>setConfiguring(p)
   const addConfigured=item=>{setCart(prev=>[...prev,{...item,cartLineId:crypto.randomUUID(),qty:1}]);setConfiguring(null)}
-  const update=(id,delta)=>setCart(prev=>prev.map(i=>(i.cartLineId||i.id)===id?{...i,qty:i.qty+delta}:i).filter(i=>i.qty>0))
+  const update=async(id,delta)=>{
+    const item=cart.find(i=>(i.cartLineId||i.id)===id)
+    if(item?.reward && delta<0){
+      if(item.rewardVoucherId&&supabase){
+        const {error}=await supabase.rpc('cancel_reward_voucher',{p_voucher_id:item.rewardVoucherId})
+        if(error){console.error(error);return alert('No pudimos devolver tu reward. Intenta nuevamente.')}
+        await auth.refreshProfile()
+      }
+      setCart(prev=>prev.filter(i=>(i.cartLineId||i.id)!==id))
+      return
+    }
+    setCart(prev=>prev.map(i=>(i.cartLineId||i.id)===id?{...i,qty:i.qty+delta}:i).filter(i=>i.qty>0))
+  }
   const panelHost=typeof window!=='undefined'&&window.location.hostname.startsWith('panel.')
   if(panelHost&&window.location.pathname==='/') return <Navigate to="/panel" replace/>
 
@@ -107,7 +119,7 @@ function App(){
     <Routes>
       <Route path="/" element={<HomePage {...shared} add={add} cartCount={cartCount}/>}/>
       <Route path="/menu" element={<MenuPage {...shared} add={add} cartCount={cartCount} cartTotal={cartTotal}/>}/>
-      <Route path="/rewards" element={<RewardsPage auth={auth} catalog={catalog} setCart={setCart}/>}/>
+      <Route path="/rewards" element={<RewardsPage auth={auth} catalog={catalog} cart={cart} setCart={setCart} branch={branch}/>}/>
       <Route path="/orders" element={<OrdersPage auth={auth}/>}/>
       <Route path="/profile" element={<ProfilePage auth={auth} addressBook={addressBook} catalog={catalog}/>}/>
       <Route path="/login" element={<LoginPage auth={auth}/>}/>
@@ -177,7 +189,7 @@ function MenuPage(props){
   const shown=useMemo(()=>catalog.products.filter(p=>p.available!==false).filter(p=>cat==='Favoritos'?p.featured:p.category===cat).filter(p=>subcat==='Todos'||p.subcategory===subcat).filter(p=>(p.name+' '+(p.desc||'')).toLowerCase().includes(q.toLowerCase())),[catalog.products,cat,subcat,q])
   return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="menu-head"><span className="eyebrow dark">MENÚ KYO</span><h1>¿Qué se te antoja?</h1><div className="search-box"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar ramen, rollos, entradas..."/></div></section><div className="cat-tabs">{categoryList.map(c=><button key={c} className={cat===c?'active':''} onClick={()=>setCat(c)}>{c}</button>)}</div>{subcategories.length>0&&<div className="subcat-tabs"><button className={subcat==='Todos'?'active':''} onClick={()=>setSubcat('Todos')}>Todos</button>{subcategories.map(s=><button key={s.id} className={subcat===s.name?'active':''} onClick={()=>setSubcat(s.name)}>{s.name}</button>)}</div>}{catalog.loading?<div className="loading-state"><RefreshCw className="spin"/> Cargando menú...</div>:<section className="menu-grid">{shown.map(p=><ProductCard key={p.id} p={p} add={add} branchId={branch?.id}/>)}</section>}{shown.length===0&&!catalog.loading&&<EmptyState icon={<Search/>} title="No encontramos productos" text="Prueba otra categoría o búsqueda." button="Ver favoritos" onClick={()=>setCat('Favoritos')}/>} {cartCount>0&&<button className="floating-cart" onClick={()=>nav('/cart')}><ShoppingBag size={20}/><span>Ver carrito</span><b>{cartCount}</b></button>}</main>
 }
-function ProductCustomizeModal({product,branchId,onClose,onAdd}){
+function ProductCustomizeModal({product,branchId,onClose,onAdd,rewardFree=false,actionLabel='Agregar al carrito'}){
   const templates=product.customizations||[]
   const [selected,setSelected]=useState({})
   const [note,setNote]=useState('')
@@ -200,13 +212,13 @@ function ProductCustomizeModal({product,branchId,onClose,onAdd}){
       for(const opt of (t.options||[])){
         const q=Number(values[opt.id]||0); if(!q)continue
         if(branchId&&opt.branchAvailability?.[branchId]===false){setError(`${opt.name} no está disponible en esta sucursal`);return}
-        rows.push({template_id:t.id,template_name:t.name,option_id:opt.id,label:t.input_type==='quantity'?`${q}× ${opt.name}`:opt.name,quantity:q,price:Number(opt.price||0)*q})
+        rows.push({template_id:t.id,template_name:t.name,option_id:opt.id,label:t.input_type==='quantity'?`${q}× ${opt.name}`:opt.name,quantity:q,price:rewardFree?0:Number(opt.price||0)*q})
       }
     }
     const extras=rows.reduce((a,r)=>a+r.price,0)
-    onAdd({...product,basePrice:Number(product.price),price:Number(product.price)+extras,selectedCustomizations:rows,itemNote:note.trim()})
+    onAdd({...product,basePrice:Number(product.price),price:rewardFree?0:Number(product.price)+extras,selectedCustomizations:rows,itemNote:note.trim(),rewardFreeCustomizations:rewardFree})
   }
-  return <div className="modal-backdrop product-config-backdrop"><div className="product-config-modal"><div className="modal-head"><div><small>PERSONALIZA TU PEDIDO</small><h2>{product.name}</h2></div><button onClick={onClose}><X/></button></div><div className="config-product-head"><img src={product.image||product.image_url}/><div><p>{product.desc||product.description}</p><strong>{productDisplayPrice(product)}</strong></div></div>{templates.map(t=><section className="config-group" key={t.id}><div className="config-group-title"><div><h3>{t.name}</h3><small>{t.required?'Obligatorio':'Opcional'} · {t.input_type==='single'?'Elige una':t.input_type==='multiple'?`Marca hasta ${t.max_select||'varias'}`:'Elige cantidades'}</small></div>{t.required&&<b>REQUERIDO</b>}</div><div className="config-options">{(t.options||[]).map(opt=>{const n=selected[t.id]?.[opt.id]||0;const unavailable=branchId&&opt.branchAvailability?.[branchId]===false;return <div className={`config-option ${n?'selected':''} ${unavailable?'option-unavailable':''}`} key={opt.id}><span><strong>{opt.name}</strong><small>{unavailable?'No disponible en esta sucursal':Number(opt.price)>0?(Number(product.price||0)===0&&t.required?money(opt.price):`+ ${money(opt.price)}`):'Sin costo'}</small></span>{t.input_type==='quantity'?<div className="config-qty"><button disabled={unavailable} onClick={()=>qty(t,opt,-1)}><Minus size={15}/></button><b>{n}</b><button disabled={unavailable} onClick={()=>qty(t,opt,1)}><Plus size={15}/></button></div>:<button disabled={unavailable} className="config-check" onClick={()=>choose(t,opt)}>{n?<Check size={16}/>:null}</button>}</div>})}</div></section>)}<label className="product-note"><span>Nota para este producto <small>(opcional)</small></span><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Ej. Sin cebollín, salsa aparte..." maxLength={250}/></label>{error&&<div className="form-message">{error}</div>}<div className="product-config-footer"><button className="primary full" onClick={finish}>Agregar al carrito</button></div></div></div>
+  return <div className="modal-backdrop product-config-backdrop"><div className="product-config-modal"><div className="modal-head"><div><small>PERSONALIZA TU PEDIDO</small><h2>{product.name}</h2></div><button onClick={onClose}><X/></button></div><div className="config-product-head"><img src={product.image||product.image_url}/><div><p>{product.desc||product.description}</p><strong>{rewardFree?'GRATIS':productDisplayPrice(product)}</strong></div></div>{templates.map(t=><section className="config-group" key={t.id}><div className="config-group-title"><div><h3>{t.name}</h3><small>{t.required?'Obligatorio':'Opcional'} · {t.input_type==='single'?'Elige una':t.input_type==='multiple'?`Marca hasta ${t.max_select||'varias'}`:'Elige cantidades'}</small></div>{t.required&&<b>REQUERIDO</b>}</div><div className="config-options">{(t.options||[]).map(opt=>{const n=selected[t.id]?.[opt.id]||0;const unavailable=branchId&&opt.branchAvailability?.[branchId]===false;return <div className={`config-option ${n?'selected':''} ${unavailable?'option-unavailable':''}`} key={opt.id}><span><strong>{opt.name}</strong><small>{unavailable?'No disponible en esta sucursal':rewardFree?'Incluido gratis':Number(opt.price)>0?(Number(product.price||0)===0&&t.required?money(opt.price):`+ ${money(opt.price)}`):'Sin costo'}</small></span>{t.input_type==='quantity'?<div className="config-qty"><button disabled={unavailable} onClick={()=>qty(t,opt,-1)}><Minus size={15}/></button><b>{n}</b><button disabled={unavailable} onClick={()=>qty(t,opt,1)}><Plus size={15}/></button></div>:<button disabled={unavailable} className="config-check" onClick={()=>choose(t,opt)}>{n?<Check size={16}/>:null}</button>}</div>})}</div></section>)}<label className="product-note"><span>Nota para este producto <small>(opcional)</small></span><textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Ej. Sin cebollín, salsa aparte..." maxLength={250}/></label>{error&&<div className="form-message">{error}</div>}<div className="product-config-footer"><button className="primary full" onClick={finish}>{actionLabel}</button></div></div></div>
 }
 
 function LoginPage({auth}){const nav=useNavigate();const [mode,setMode]=useState('login');const [name,setName]=useState('');const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);useEffect(()=>{if(auth.user)nav('/',{replace:true})},[auth.user]);const submit=async e=>{e.preventDefault();setError('');if(!supabase){setError('Falta configurar Supabase.');return}setBusy(true);const result=mode==='register'?await supabase.auth.signUp({email,password,options:{data:{full_name:name}}}):await supabase.auth.signInWithPassword({email,password});setBusy(false);if(result.error){setError(result.error.message);return}if(mode==='register'&&!result.data.session){setError('Cuenta creada. Revisa tu correo para confirmar el acceso.');return}nav('/')};return <main className="auth-page"><button className="back" onClick={()=>nav(-1)}><ArrowLeft/></button><div className="auth-brand"><Brand/><p>Tu KYO. Tus rewards. Tu pedido.</p></div><form className="auth-card" onSubmit={submit}><div className="auth-tabs"><button type="button" className={mode==='login'?'active':''} onClick={()=>setMode('login')}>Iniciar sesión</button><button type="button" className={mode==='register'?'active':''} onClick={()=>setMode('register')}>Crear cuenta</button></div>{mode==='register'&&<label>Nombre<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></label>}<label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="correo@ejemplo.com"/></label><label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>{error&&<div className="form-message">{error}</div>}<button disabled={busy} className="primary full">{busy?'Procesando...':mode==='login'?'Entrar a mi cuenta':'Crear mi cuenta'}</button></form></main>}
@@ -221,31 +233,111 @@ function ProfilePage({auth,addressBook,catalog}){
 
 function GuestBenefits(){return <section className="section"><div className="benefit-boxes"><div><Gift/><strong>Rewards exclusivos</strong><p>Acumula puntos en pedidos entregados.</p></div><div><MapPin/><strong>Direcciones guardadas</strong><p>Pide en menos pasos la próxima vez.</p></div><div><ShoppingBag/><strong>Historial completo</strong><p>Consulta todos tus pedidos.</p></div></div></section>}
 
-function RewardsPage({auth,catalog,setCart}){
-  const nav=useNavigate(); const [vouchers,setVouchers]=useState([]); const [busy,setBusy]=useState(''); const [msg,setMsg]=useState('')
-  const load=async()=>{if(!supabase||!auth.user)return;const {data}=await supabase.from('reward_vouchers').select('*').eq('user_id',auth.user.id).eq('status','available').order('created_at',{ascending:false});setVouchers(data||[])}
-  useEffect(()=>{load()},[auth.user?.id])
+function RewardsPage({auth,catalog,cart,setCart,branch}){
+  const nav=useNavigate()
+  const [busy,setBusy]=useState('')
+  const [msg,setMsg]=useState('')
+  const [chooseRoll,setChooseRoll]=useState(false)
+  const [configRoll,setConfigRoll]=useState(null)
+
+  const rewardVoucherIds=(cart||[]).filter(i=>i.rewardVoucherId).map(i=>i.rewardVoucherId)
+  const hasSpringInCart=(cart||[]).some(i=>i.rewardType==='spring_rolls')
+  const hasFreeRollInCart=(cart||[]).some(i=>i.rewardType==='free_roll')
+
+  useEffect(()=>{
+    if(!supabase||!auth.user)return
+    let alive=true
+    ;(async()=>{
+      const {data}=await supabase.from('reward_vouchers').select('id').eq('user_id',auth.user.id).eq('status','available')
+      const orphaned=(data||[]).filter(v=>!rewardVoucherIds.includes(v.id))
+      for(const v of orphaned) await supabase.rpc('cancel_reward_voucher',{p_voucher_id:v.id})
+      if(alive&&orphaned.length)await auth.refreshProfile()
+    })()
+    return()=>{alive=false}
+  },[auth.user?.id,rewardVoucherIds.join('|')])
+
   if(!auth.user)return <main><Header plain/><EmptyState icon={<Gift/>} title="Tus rewards viven aquí" text="Inicia sesión para acumular KYO Points." button="Iniciar sesión" onClick={()=>nav('/login')}/></main>
-  const points=auth.profile?.reward_points||0; const stamps=Math.min(6,auth.profile?.reward_order_stamps||0)
-  const springProduct=catalog.products.find(p=>p.slug==='spring-rolls'||p.name?.toLowerCase()==='4 spring rolls')
-  const addVoucherToCart=(voucher,product=springProduct)=>{
-    if(!product){setMsg('No encontramos 4 Spring Rolls en el menú. Revisa que el producto esté disponible.');return false}
-    setCart(prev=>{
-      if(prev.some(i=>i.rewardVoucherId===voucher.id))return prev
-      return [...prev,{...product,id:`reward-${voucher.id}`,productId:product.id,price:0,qty:1,reward:true,rewardType:voucher.reward_type,rewardVoucherId:voucher.id,name:'4 Spring Rolls',desc:'Beneficio KYO Rewards · 250 puntos'}]
-    })
-    setMsg('¡Listo! Agregamos 4 Spring Rolls GRATIS a tu carrito.')
-    return true
+
+  const points=auth.profile?.reward_points||0
+  const stamps=Math.min(6,auth.profile?.reward_order_stamps||0)
+  const branchId=branch?.id
+  const springProduct=catalog.products.find(p=>(p.slug==='spring-rolls'||p.name?.toLowerCase()==='4 spring rolls') && p.available!==false && (!branchId||p.branchAvailability?.[branchId]!==false))
+  const classicRolls=catalog.products.filter(p=>
+    p.available!==false &&
+    (p.subcategorySlug==='clasicos'||p.subcategory?.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')==='clasicos') &&
+    (!branchId||p.branchAvailability?.[branchId]!==false)
+  )
+
+  const reserveSpring=async()=>{
+    setBusy('spring_rolls');setMsg('')
+    const {data,error}=await supabase.rpc('redeem_spring_rolls_reward')
+    setBusy('')
+    if(error){setMsg(error.message);return}
+    const voucherId=Array.isArray(data)?data[0]:data
+    if(!springProduct){
+      await supabase.rpc('cancel_reward_voucher',{p_voucher_id:voucherId})
+      await auth.refreshProfile()
+      return setMsg('4 Spring Rolls no está disponible en esta sucursal.')
+    }
+    setCart(prev=>[
+      ...prev,
+      {...springProduct,id:`reward-${voucherId}`,productId:springProduct.id,price:0,qty:1,reward:true,rewardType:'spring_rolls',rewardVoucherId:voucherId,name:'4 Spring Rolls',desc:'KYO Rewards · 250 puntos'}
+    ])
+    await auth.refreshProfile()
+    nav('/cart')
   }
-  const redeem=async(type)=>{
-    setBusy(type);setMsg('');const fn=type==='spring_rolls'?'redeem_spring_rolls_reward':'redeem_six_orders_reward';const {data,error}=await supabase.rpc(fn);setBusy('');if(error){setMsg(error.message);return}
-    await auth.refreshProfile();await load()
-    if(type==='spring_rolls'){
-      const voucher={id:Array.isArray(data)?data[0]:data,reward_type:'spring_rolls'}
-      if(addVoucherToCart(voucher)) setTimeout(()=>nav('/cart'),450)
-    }else setMsg('¡Completaste tu tarjeta! Tu beneficio de rollo gratis quedó disponible.')
+
+  const startSixOrderReward=()=>{
+    setMsg('')
+    if(stamps<6)return
+    if(!classicRolls.length)return setMsg('No hay rollos clásicos disponibles en esta sucursal por el momento.')
+    setChooseRoll(true)
   }
-  return <main><Header plain/><section className="page-intro rewards-intro"><span className="eyebrow dark">KYO REWARDS</span><h1>{points} puntos</h1><p>Ganas 1 punto por cada $1 de subtotal cuando tu pedido se marca como entregado.</p></section><section className="reward-banner rewards-balance"><div><span className="reward-icon"><Gift/></span><span><small>TU SALDO</small><strong>{points} KYO Points</strong></span></div></section><section className="section reward-benefits"><div className="section-head"><div><span className="eyebrow dark">TUS BENEFICIOS</span><h2>Canjea y disfruta</h2></div></div><div className="reward-grid"><article className="reward-card points-reward-card"><div className="reward-card-icon"><Gift/></div><div className="reward-card-copy"><small>BENEFICIO POR PUNTOS</small><h3>4 Spring Rolls gratis</h3><p>Canjéalos por <strong>250 puntos</strong>. Al canjearlos se agregan directamente a tu carrito en $0.</p></div><button className="primary" disabled={points<250||busy==='spring_rolls'||!springProduct} onClick={()=>redeem('spring_rolls')}>{busy==='spring_rolls'?'Canjeando...':!springProduct?'Producto no disponible':points>=250?'Canjear y agregar al carrito':`Te faltan ${250-points} puntos`}</button></article><article className="reward-card stamp-card"><div><small>RETO KYO</small><h3>Tu 6.º pedido invita el rollo</h3><p>Completa 6 pedidos entregados y canjea un rollo gratis.</p></div><div className="stamp-row">{Array.from({length:6},(_,i)=><span key={i} className={i<stamps?'done':''}>{i<stamps?<Check size={16}/>:i+1}</span>)}</div><div className="stamp-progress"><strong>{stamps}/6 pedidos</strong><small>{stamps>=6?'¡Beneficio listo para canjear!':`Te faltan ${6-stamps} pedidos`}</small></div><button className="primary dark-btn" disabled={stamps<6||busy==='six_orders'} onClick={()=>redeem('six_orders')}>{busy==='six_orders'?'Canjeando...':stamps>=6?'Canjear rollo gratis':'Sigue acumulando'}</button></article></div>{msg&&<div className="reward-message">{msg}</div>}{vouchers.length>0&&<div className="available-rewards"><span className="eyebrow dark">BENEFICIOS GUARDADOS</span><h3>Rewards que todavía no has usado</h3>{vouchers.map(v=><div key={v.id}><Gift size={17}/><span><strong>{v.reward_type==='spring_rolls'?'4 Spring Rolls gratis':'Rollo gratis'}</strong><small>{v.reward_type==='spring_rolls'?'Puedes agregarlos a tu carrito ahora.':'Disponible para una próxima compra.'}</small></span>{v.reward_type==='spring_rolls'&&<button className="reward-cart-btn" onClick={()=>addVoucherToCart(v)}>Agregar gratis</button>}</div>)}</div>}</section></main>
+
+  const finishFreeRoll=async(configured)=>{
+    setBusy('six_orders');setMsg('')
+    const {data,error}=await supabase.rpc('redeem_six_orders_reward')
+    setBusy('')
+    if(error){setMsg(error.message);return}
+    const voucherId=Array.isArray(data)?data[0]:data
+    setCart(prev=>[
+      ...prev,
+      {...configured,id:`reward-${voucherId}`,productId:configured.id,price:0,qty:1,reward:true,rewardType:'free_roll',rewardVoucherId:voucherId,name:configured.name,desc:'Reto KYO · 6 pedidos · personalizaciones incluidas'}
+    ])
+    await auth.refreshProfile()
+    setConfigRoll(null);setChooseRoll(false)
+    nav('/cart')
+  }
+
+  return <main>
+    <Header plain/>
+    <section className="page-intro rewards-intro"><span className="eyebrow dark">KYO REWARDS</span><h1>{points} puntos</h1><p>Ganas 1 punto por cada $1 de subtotal cuando tu pedido se marca como entregado.</p></section>
+    <section className="reward-banner rewards-balance"><div><span className="reward-icon"><Gift/></span><span><small>TU SALDO</small><strong>{points} KYO Points</strong></span></div></section>
+    <section className="section reward-benefits">
+      <div className="section-head"><div><span className="eyebrow dark">TUS BENEFICIOS</span><h2>Canjea y disfruta</h2></div></div>
+      <div className="reward-grid">
+        <article className="reward-card points-reward-card">
+          <div className="reward-card-icon"><Gift/></div>
+          <div className="reward-card-copy"><small>BENEFICIO POR PUNTOS</small><h3>4 Spring Rolls gratis</h3><p>Canjéalos por <strong>250 puntos</strong>. Se agregan directamente a tu carrito.</p></div>
+          <button className="primary" disabled={points<250||busy==='spring_rolls'||!springProduct||hasSpringInCart} onClick={reserveSpring}>{hasSpringInCart?'Ya está en tu carrito':busy==='spring_rolls'?'Canjeando...':!springProduct?'No disponible en esta sucursal':points>=250?'Canjear y agregar al carrito':`Te faltan ${250-points} puntos`}</button>
+        </article>
+        <article className="reward-card stamp-card">
+          <div><small>RETO KYO</small><h3>Tu 6.º pedido invita el rollo</h3><p>Completa 6 pedidos entregados y elige <strong>cualquier rollo de Clásicos</strong>. Sus personalizaciones van incluidas.</p></div>
+          <div className="stamp-row">{Array.from({length:6},(_,i)=><span key={i} className={i<stamps?'done':''}>{i<stamps?<Check size={16}/>:i+1}</span>)}</div>
+          <div className="stamp-progress"><strong>{stamps}/6 pedidos</strong><small>{stamps>=6?'¡Ya puedes elegir tu rollo!':`Te faltan ${6-stamps} pedidos`}</small></div>
+          <button className="primary dark-btn" disabled={stamps<6||busy==='six_orders'||hasFreeRollInCart} onClick={startSixOrderReward}>{hasFreeRollInCart?'Ya está en tu carrito':stamps>=6?'Elegir mi rollo gratis':'Sigue acumulando'}</button>
+        </article>
+      </div>
+      {msg&&<div className="reward-message">{msg}</div>}
+    </section>
+
+    {chooseRoll&&!configRoll&&<div className="modal-backdrop"><div className="reward-roll-picker">
+      <div className="modal-head"><div><small>RETO KYO · 6 PEDIDOS</small><h2>Elige tu rollo gratis</h2><p>Selecciona cualquiera de los rollos de Clásicos disponibles en {branch?.name||'tu sucursal'}.</p></div><button onClick={()=>setChooseRoll(false)}><X/></button></div>
+      <div className="reward-roll-grid">{classicRolls.map(p=><button key={p.id} className="reward-roll-option" onClick={()=>setConfigRoll(p)}><img src={p.image||p.image_url}/><span><small>{p.subcategory||'Clásicos'}</small><strong>{p.name}</strong><em>{productDisplayPrice(p)} · GRATIS con tu reward</em></span><ChevronRight/></button>)}</div>
+    </div></div>}
+
+    {configRoll&&<ProductCustomizeModal product={configRoll} branchId={branchId} rewardFree actionLabel={busy==='six_orders'?'Canjeando...':'Agregar rollo GRATIS al carrito'} onClose={()=>setConfigRoll(null)} onAdd={finishFreeRoll}/>}
+  </main>
 }
 function OrdersPage({auth}){const nav=useNavigate();const [orders,setOrders]=useState([]);const [loading,setLoading]=useState(true);const load=async()=>{if(!supabase||!auth.user){setLoading(false);return}const {data}=await supabase.from('orders').select('*, order_items(*)').eq('user_id',auth.user.id).order('created_at',{ascending:false});setOrders(data||[]);setLoading(false)};useEffect(()=>{load();if(!supabase||!auth.user)return;const ch=supabase.channel(`client-orders-${auth.user.id}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders',filter:`user_id=eq.${auth.user.id}`},load).subscribe();return()=>supabase.removeChannel(ch)},[auth.user?.id]);if(!auth.user)return <main><Header plain/><EmptyState icon={<ShoppingBag/>} title="Tus pedidos en un solo lugar" text="Inicia sesión para ver tu historial y seguimiento." button="Iniciar sesión" onClick={()=>nav('/login')}/></main>;const active=orders.filter(o=>!['delivered','cancelled'].includes(o.status));const history=orders.filter(o=>['delivered','cancelled'].includes(o.status));return <main><Header plain/><section className="page-intro compact"><span className="eyebrow dark">MIS PEDIDOS</span><h1>Tu pedido</h1></section>{loading?<div className="loading-state"><RefreshCw className="spin"/> Cargando...</div>:<section className="orders"><div className="orders-group-title">PEDIDO ACTUAL</div>{active.map(o=><OrderCard key={o.id} o={o} active/>)}{active.length===0&&<div className="no-active-order"><ShoppingBag/><div><strong>No tienes un pedido en curso</strong><small>Cuando hagas uno, podrás seguirlo aquí.</small></div><button className="primary" onClick={()=>nav('/menu')}>Hacer pedido</button></div>}{history.length>0&&<><div className="orders-group-title history-title">ANTERIORES</div>{history.map(o=><OrderCard key={o.id} o={o}/>)}</>}</section>}</main>}
 function OrderCard({o,active}){const state=clientStatus(o.status);return <article className={active?'active-order-card':''}><div><span className={`status ${o.status==='delivered'?'completed':''}`}><Check size={15}/> {state}</span><small>{new Date(o.created_at).toLocaleString('es-MX')} · {o.branch_id==='zakia'?'KYO Zákia':'KYO Milenio'}</small></div><h3>Pedido #{String(o.order_number).padStart(4,'0')}</h3><p>{o.order_items?.map(i=>`${i.quantity}× ${i.product_name}`).join(' · ')}</p>{active&&<div className="client-progress"><div className={['preparing','ready','on_the_way','delivered'].includes(o.status)?'done':''}><i>1</i><span>Preparando</span></div><div className={['on_the_way','delivered'].includes(o.status)?'done':''}><i>2</i><span>En camino</span></div><div className={o.status==='delivered'?'done':''}><i>3</i><span>Entregado</span></div></div>}<div><strong>{money(o.total)}</strong></div></article>}

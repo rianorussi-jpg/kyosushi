@@ -2538,3 +2538,113 @@ main{
     background:#f1f2f3!important;
   }
 }
+
+
+/* ===== v22.2 pedidos activos + WhatsApp repartidores ===== */
+.active-order-dot{
+  position:absolute;
+  top:7px;
+  right:19px;
+  width:8px;
+  height:8px;
+  min-width:8px;
+  padding:0;
+  border-radius:50%;
+  background:#e33a3a;
+  box-shadow:0 0 0 2px #161616;
+  font-size:0;
+}
+.bottom-nav a{position:relative}
+
+.route-strip{
+  display:grid!important;
+  gap:12px!important;
+  padding:14px!important;
+}
+.route-strip-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+}
+.route-orders-list{
+  display:grid;
+  gap:10px;
+}
+.route-order-row{
+  display:grid;
+  grid-template-columns:minmax(220px,1fr) auto;
+  align-items:center;
+  gap:14px;
+  padding:12px 13px;
+  border:1px solid #ddd;
+  border-radius:13px;
+  background:#fff;
+}
+.route-order-info{
+  display:grid;
+  gap:4px;
+  min-width:0;
+}
+.route-order-info strong{
+  color:#151515;
+  font-size:13px;
+}
+.route-order-info small{
+  color:#666;
+  font-size:10px;
+  line-height:1.35;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.route-order-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.route-order-actions button{
+  min-height:38px;
+  border-radius:999px!important;
+  padding:0 13px!important;
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+}
+.route-order-actions .rider-btn{
+  background:#eef7ef!important;
+  color:#17622b!important;
+  border:1px solid #b9d9c0!important;
+}
+.route-order-actions .rider-btn:hover{
+  background:#e3f2e6!important;
+}
+.route-order-actions .delivered-btn{
+  background:#111!important;
+  color:#fff!important;
+  border:1px solid #111!important;
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+.route-order-actions .delivered-btn svg{
+  width:14px;
+}
+
+@media(max-width:760px){
+  .active-order-dot{
+    top:6px;
+    right:calc(50% - 18px);
+  }
+  .route-order-row{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .route-order-actions{
+    justify-content:stretch;
+  }
+  .route-order-actions button{
+    flex:1 1 120px;
+  }
+}

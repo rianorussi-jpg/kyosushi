@@ -134,7 +134,7 @@ function App(){
       <Route path="*" element={<Navigate to="/" replace/>}/>
     </Routes>
     {configuring&&<ProductCustomizeModal product={configuring} branchId={branchId} onClose={()=>setConfiguring(null)} onAdd={addConfigured}/>}
-    <BottomNav cartCount={cartCount}/>
+    <BottomNav auth={auth}/>
   </div>
 }
 
@@ -158,7 +158,42 @@ function Header({auth,catalog,addressBook,destination,setDestination,selectedAdd
   </>
 }
 
-function BottomNav({cartCount}){const loc=useLocation();if(['/login','/checkout','/success','/panel','/modococina'].some(p=>loc.pathname.startsWith(p)))return null;return <nav className="bottom-nav">{[['/',Home,'Inicio'],['/menu',Search,'Menú'],['/rewards',Gift,'Rewards'],['/orders',ShoppingBag,'Pedidos'],['/profile',User,'Perfil']].map(([to,Icon,label])=><NavLink key={to} to={to} end={to==='/' } className={({isActive})=>isActive?'active':''}><Icon size={21}/><span>{label}</span>{to==='/orders'&&cartCount>0?<b className="mini-badge">{cartCount}</b>:null}</NavLink>)}</nav>}
+function BottomNav({auth}){
+  const loc=useLocation()
+  const [hasActiveOrder,setHasActiveOrder]=useState(false)
+
+  useEffect(()=>{
+    if(!supabase||!auth?.user){setHasActiveOrder(false);return}
+    let alive=true
+    const loadActive=async()=>{
+      const {data}=await supabase
+        .from('orders')
+        .select('id')
+        .eq('user_id',auth.user.id)
+        .in('status',['preparing','ready','on_the_way'])
+        .limit(1)
+      if(alive)setHasActiveOrder(!!data?.length)
+    }
+    loadActive()
+    const channel=supabase
+      .channel(`bottom-nav-orders-${auth.user.id}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'orders',filter:`user_id=eq.${auth.user.id}`},loadActive)
+      .subscribe()
+    return()=>{alive=false;supabase.removeChannel(channel)}
+  },[auth?.user?.id])
+
+  if(['/login','/checkout','/success','/panel','/modococina'].some(p=>loc.pathname.startsWith(p)))return null
+
+  return <nav className="bottom-nav">
+    {[['/',Home,'Inicio'],['/menu',Search,'Menú'],['/rewards',Gift,'Rewards'],['/orders',ShoppingBag,'Pedidos'],['/profile',User,'Perfil']].map(([to,Icon,label])=>
+      <NavLink key={to} to={to} end={to==='/' } className={({isActive})=>isActive?'active':''}>
+        <Icon size={21}/>
+        <span>{label}</span>
+        {to==='/orders'&&hasActiveOrder?<b className="active-order-dot" aria-label="Tienes un pedido activo"/>:null}
+      </NavLink>
+    )}
+  </nav>
+}
 
 function HomePage({auth,catalog,addressBook,destination,setDestination,selectedAddress,add,cartCount}){const nav=useNavigate();const featured=catalog.products.filter(p=>p.featured&&p.available!==false).slice(0,6);const branch=catalog.branches.find(b=>b.id===(selectedAddress?.branch_id||destination.branchId))||catalog.branches[0];return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="hero"><div className="hero-copy"><span className="hero-location-tag">ZÁKIA · MILENIO</span><span className="eyebrow">KYO A TU MANERA</span><h1>Tu sushi favorito,<br/><em>más cerca de ti.</em></h1><p>Pide directo, acumula KYO Points y recibe beneficios exclusivos.</p><button className="primary" onClick={()=>nav('/menu')}>Ordenar ahora <ChevronRight size={18}/></button></div><div className="hero-art"><div className="red-orb"></div><img src="/assets/menu/ebi-crispy-ramen.jpg" alt="Ramen KYO"/></div></section><section className="quick-row"><div><Bike/><span><strong>Delivery</strong><small>{branch?.eta||'35–50 min'}</small></span></div><div><Store/><span><strong>Pickup</strong><small>Listo en 20–30 min</small></span></div><div><Gift/><span><strong>Rewards</strong><small>1 punto por $1</small></span></div></section><section className="section"><div className="section-head"><div><span className="eyebrow dark">LOS MÁS PEDIDOS</span><h2>Favoritos de KYO</h2></div><button className="text-btn" onClick={()=>nav('/menu')}>Ver todo <ChevronRight size={17}/></button></div><div className="product-scroller">{featured.map(p=><ProductCard key={p.id} p={p} add={add} branchId={branch?.id}/>)}</div></section><section className="reward-banner"><div><span className="reward-icon"><Sparkles/></span><span><small>KYO REWARDS</small><strong>Come rico. Gana puntos.<br/>Recibe más KYO.</strong></span></div><button onClick={()=>nav('/rewards')}>Ver mis beneficios</button></section>{cartCount>0&&<button className="floating-cart" onClick={()=>nav('/cart')}><ShoppingBag size={20}/><span>Ver carrito</span><b>{cartCount}</b></button>}</main>}
 

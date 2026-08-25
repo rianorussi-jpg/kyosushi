@@ -26,7 +26,8 @@ create table if not exists public.categories (
   name text not null unique,
   slug text not null unique,
   sort_order integer not null default 0,
-  active boolean not null default true
+  active boolean not null default true,
+  parent_id uuid references public.categories(id) on delete cascade
 );
 
 create table if not exists public.products (
@@ -36,6 +37,7 @@ create table if not exists public.products (
   description text not null default '',
   price numeric(10,2) not null check (price >= 0),
   category_id uuid references public.categories(id) on delete set null,
+  subcategory_id uuid references public.categories(id) on delete set null,
   image_url text,
   featured boolean not null default false,
   spicy boolean not null default false,
@@ -261,6 +263,13 @@ insert into public.categories(name,slug,sort_order) values
 ('Entradas','entradas',10),('Kushiagues','kushiagues',20),('Sopas','sopas',30),('Ramen','ramen',40),('Poke Bowl','poke-bowl',50),('Rollos','rollos',60),('Arroz','arroz',70),('Postres','postres',80)
 on conflict (slug) do update set name=excluded.name, sort_order=excluded.sort_order;
 
+-- Subcategorías iniciales de Rollos.
+with parent as (select id from public.categories where slug='rollos' limit 1)
+insert into public.categories(name,slug,sort_order,active,parent_id)
+select v.name,v.slug,v.sort_order,true,parent.id
+from parent cross join (values ('Clásicos','rollos-clasicos',10),('Tempurizados','rollos-tempurizados',20),('Empanizados','rollos-empanizados',30),('Especiales','rollos-especiales',40)) v(name,slug,sort_order)
+on conflict (slug) do update set name=excluded.name,sort_order=excluded.sort_order,parent_id=excluded.parent_id;
+
 -- 20 productos demo del menú KYO 2026. Las imágenes locales se sirven desde Vercel;
 -- cuando el admin suba una nueva foto, image_url se reemplaza por la URL de Supabase Storage.
 with seed(slug,name,cat,price,description,image_url,featured,spicy,sort_order) as (values
@@ -291,6 +300,10 @@ from seed s join public.categories c on c.slug=s.cat
 on conflict (slug) do update set
 name=excluded.name, category_id=excluded.category_id, price=excluded.price, description=excluded.description,
 image_url=excluded.image_url, featured=excluded.featured, spicy=excluded.spicy, sort_order=excluded.sort_order;
+
+update public.products p set subcategory_id=c.id from public.categories c where c.slug='rollos-tempurizados' and p.slug='spicy-tuna-roll';
+update public.products p set subcategory_id=c.id from public.categories c where c.slug='rollos-empanizados' and p.slug in ('tampico-roll','philly-roll');
+update public.products p set subcategory_id=c.id from public.categories c where c.slug='rollos-especiales' and p.slug='crunch-roll';
 
 -- IMPORTANTE: crea el usuario administrador en Authentication > Users y después ejecuta:
 -- update public.profiles set is_admin = true where id = (select id from auth.users where email = 'admin@tudominio.com');

@@ -43,23 +43,24 @@ function useAuth(){
 function useCatalog(){
   const [products,setProducts]=useState(fallbackProducts.map((p,i)=>({...p,id:p.slug,sort_order:(i+1)*10,available:true})))
   const [categories,setCategories]=useState(fallbackCategories.filter(c=>c!=='Favoritos'))
+  const [categoryObjects,setCategoryObjects]=useState(fallbackCategories.filter(c=>c!=='Favoritos').map((name,i)=>({id:name, name, slug:name.toLowerCase().replace(/\s+/g,'-'), parent_id:null, sort_order:(i+1)*10})))
   const [branches,setBranches]=useState(fallbackBranches)
   const [loading,setLoading]=useState(supabaseConfigured)
   const refresh=async()=>{
     if(!supabase){setLoading(false);return}
     setLoading(true)
     const [{data:p,error:pe},{data:c},{data:b}]=await Promise.all([
-      supabase.from('products').select('*, categories(name,slug), product_customizations(sort_order, customization_templates(id,name,input_type,required,min_select,max_select,options))').order('sort_order'),
+      supabase.from('products').select('*, category:categories!products_category_id_fkey(id,name,slug), subcategory:categories!products_subcategory_id_fkey(id,name,slug,parent_id,sort_order), product_customizations(sort_order, customization_templates(id,name,input_type,required,min_select,max_select,options))').order('sort_order'),
       supabase.from('categories').select('*').eq('active',true).order('sort_order'),
       supabase.from('branches').select('*').eq('active',true)
     ])
-    if(!pe && p?.length) setProducts(p.map(x=>({...x,price:Number(x.price),category:x.categories?.name||'Otros',desc:x.description,image:x.image_url||'/assets/kyo-logo.jpg',customizations:(x.product_customizations||[]).sort((a,b)=>a.sort_order-b.sort_order).map(pc=>pc.customization_templates?{...pc.customization_templates,sort_order:pc.sort_order}:null).filter(Boolean)})))
-    if(c?.length) setCategories(c.map(x=>x.name))
+    if(!pe && p?.length) setProducts(p.map(x=>({...x,price:Number(x.price),category:x.category?.name||'Otros',categorySlug:x.category?.slug||'',subcategory:x.subcategory?.name||null,subcategorySlug:x.subcategory?.slug||null,desc:x.description,image:x.image_url||'/assets/kyo-logo.jpg',customizations:(x.product_customizations||[]).sort((a,b)=>a.sort_order-b.sort_order).map(pc=>pc.customization_templates?{...pc.customization_templates,sort_order:pc.sort_order}:null).filter(Boolean)})))
+    if(c?.length){setCategoryObjects(c);setCategories(c.filter(x=>!x.parent_id).map(x=>x.name))}
     if(b?.length) setBranches(b.map(x=>({id:x.id,name:x.name,short:x.short_name,address:x.address,phone:x.phone,eta:x.eta})))
     setLoading(false)
   }
   useEffect(()=>{refresh()},[])
-  return {products,categories,branches,loading,refresh,setProducts}
+  return {products,categories,categoryObjects,branches,loading,refresh,setProducts}
 }
 
 function useAddresses(auth){
@@ -166,8 +167,16 @@ function productDisplayPrice(p){
 
 function ProductCard({p,add}){return <article className="product-card"><div className="product-img"><img src={p.image||p.image_url} alt={p.name}/>{p.spicy&&<span className="spicy"><Flame size={13}/> Spicy</span>}</div><div className="product-body"><small>{p.category}</small><h3>{p.name}</h3><p>{p.desc||p.description}</p><div><strong>{productDisplayPrice(p)}</strong><button className="add-btn" onClick={()=>add(p)} aria-label={`Agregar ${p.name}`}><Plus/></button></div></div></article>}
 
-function MenuPage(props){const {auth,catalog,addressBook,destination,setDestination,selectedAddress,add,cartCount,cartTotal}=props;const nav=useNavigate();const [params]=useSearchParams();const [cat,setCat]=useState(params.get('category')||'Favoritos');const [q,setQ]=useState('');const categoryList=['Favoritos',...catalog.categories];const shown=useMemo(()=>catalog.products.filter(p=>p.available!==false).filter(p=>cat==='Favoritos'?p.featured:p.category===cat).filter(p=>(p.name+' '+(p.desc||'')).toLowerCase().includes(q.toLowerCase())),[catalog.products,cat,q]);return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="menu-head"><span className="eyebrow dark">MENÚ KYO</span><h1>¿Qué se te antoja?</h1><div className="search-box"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar ramen, rollos, entradas..."/></div></section><div className="cat-tabs">{categoryList.map(c=><button key={c} className={cat===c?'active':''} onClick={()=>setCat(c)}>{c}</button>)}</div>{catalog.loading?<div className="loading-state"><RefreshCw className="spin"/> Cargando menú...</div>:<section className="menu-grid">{shown.map(p=><ProductCard key={p.id} p={p} add={add}/>)}</section>}{shown.length===0&&!catalog.loading&&<EmptyState icon={<Search/>} title="No encontramos productos" text="Prueba otra categoría o búsqueda." button="Ver favoritos" onClick={()=>setCat('Favoritos')}/>} {cartCount>0&&<button className="floating-cart" onClick={()=>nav('/cart')}><ShoppingBag size={20}/><span>Ver carrito</span><b>{cartCount}</b></button>}</main>}
-
+function MenuPage(props){
+  const {auth,catalog,addressBook,destination,setDestination,selectedAddress,add,cartCount}=props
+  const nav=useNavigate();const [params]=useSearchParams();const [cat,setCat]=useState(params.get('category')||'Favoritos');const [subcat,setSubcat]=useState('Todos');const [q,setQ]=useState('')
+  const categoryList=['Favoritos',...catalog.categories]
+  const activeCategory=catalog.categoryObjects?.find(c=>!c.parent_id&&c.name===cat)
+  const subcategories=(catalog.categoryObjects||[]).filter(c=>activeCategory&&c.parent_id===activeCategory.id).sort((a,b)=>a.sort_order-b.sort_order)
+  useEffect(()=>{setSubcat('Todos')},[cat])
+  const shown=useMemo(()=>catalog.products.filter(p=>p.available!==false).filter(p=>cat==='Favoritos'?p.featured:p.category===cat).filter(p=>subcat==='Todos'||p.subcategory===subcat).filter(p=>(p.name+' '+(p.desc||'')).toLowerCase().includes(q.toLowerCase())),[catalog.products,cat,subcat,q])
+  return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="menu-head"><span className="eyebrow dark">MENÚ KYO</span><h1>¿Qué se te antoja?</h1><div className="search-box"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar ramen, rollos, entradas..."/></div></section><div className="cat-tabs">{categoryList.map(c=><button key={c} className={cat===c?'active':''} onClick={()=>setCat(c)}>{c}</button>)}</div>{subcategories.length>0&&<div className="subcat-tabs"><button className={subcat==='Todos'?'active':''} onClick={()=>setSubcat('Todos')}>Todos</button>{subcategories.map(s=><button key={s.id} className={subcat===s.name?'active':''} onClick={()=>setSubcat(s.name)}>{s.name}</button>)}</div>}{catalog.loading?<div className="loading-state"><RefreshCw className="spin"/> Cargando menú...</div>:<section className="menu-grid">{shown.map(p=><ProductCard key={p.id} p={p} add={add}/>)}</section>}{shown.length===0&&!catalog.loading&&<EmptyState icon={<Search/>} title="No encontramos productos" text="Prueba otra categoría o búsqueda." button="Ver favoritos" onClick={()=>setCat('Favoritos')}/>} {cartCount>0&&<button className="floating-cart" onClick={()=>nav('/cart')}><ShoppingBag size={20}/><span>Ver carrito</span><b>{cartCount}</b></button>}</main>
+}
 function ProductCustomizeModal({product,onClose,onAdd}){
   const templates=product.customizations||[]
   const [selected,setSelected]=useState({})

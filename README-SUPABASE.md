@@ -81,3 +81,14 @@ Esto permite que un voucher de **4 Spring Rolls** viaje en el carrito con precio
 ## v10 — Personalizaciones reutilizables
 Si vienes de la v9, ejecuta una sola vez `supabase/migrate-v10-personalizaciones.sql` en Supabase > SQL Editor.
 Después, en Panel > Menú > Nuevo/Editar producto puedes crear plantillas reutilizables (elegir una, marcar varias o elegir cantidad), con opciones gratis o con costo, y asignarlas a múltiples productos.
+
+## Actualización v13 — categorías, subcategorías y plantillas editables
+Si vienes de la v12, ejecuta una sola vez en Supabase SQL Editor:
+
+`supabase/migrate-v13-categorias-subcategorias.sql`
+
+Esto agrega jerarquía de categorías y el campo de subcategoría de producto. También crea como ejemplo dentro de **Rollos**: Clásicos, Tempurizados, Empanizados y Especiales.
+
+En Panel → Menú → Categorías y subcategorías puedes crear, renombrar, ordenar, ocultar o eliminar categorías. Al editar/agregar un producto aparecerá el selector de subcategoría cuando la categoría elegida tenga alguna.
+
+Las plantillas de personalización existentes ahora tienen botón **Editar** dentro del editor de producto. Al cambiar una plantilla compartida, el cambio se refleja en todos los productos que la usan.

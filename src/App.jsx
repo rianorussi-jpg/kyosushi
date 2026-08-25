@@ -142,7 +142,7 @@ function formatAddress(a){
   return `${a.street || a.address_line || ''}${a.exterior_number?` #${a.exterior_number}`:''}${a.interior_number?` Int. ${a.interior_number}`:''}${a.neighborhood?`, ${a.neighborhood}`:''}${a.postal_code?`, CP ${a.postal_code}`:''}`
 }
 
-function Header({auth,catalog,addressBook,destination,setDestination,selectedAddress,plain=false}){
+function Header({auth,catalog,addressBook,destination,setDestination,selectedAddress,plain=false,hideBrand=false}){
   const [open,setOpen]=useState(false); const [adding,setAdding]=useState(false); const [editingAddress,setEditingAddress]=useState(null); const nav=useNavigate()
   const chooseAddress=a=>{setDestination({mode:'delivery',addressId:a.id,branchId:a.branch_id});setOpen(false)}
   const choosePickup=id=>{setDestination({mode:'pickup',addressId:null,branchId:id});setOpen(false)}

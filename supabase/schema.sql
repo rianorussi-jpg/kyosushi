@@ -920,7 +920,10 @@ begin
           select 1
           from public.categories c
           where c.id=v_product.subcategory_id
-            and c.slug='clasicos'
+            and (
+              lower(c.name) in ('clásicos','clasicos')
+              or lower(c.slug) in ('clasicos','clásicos')
+            )
         ) then
           raise exception 'El reward de 6 pedidos solo aplica a rollos Clásicos';
         end if;

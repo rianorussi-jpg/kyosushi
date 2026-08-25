@@ -346,6 +346,41 @@ function CartPage({cart,update,total,destination,selectedAddress,branch}){const 
 
 function CheckoutPage({cart,total,auth,catalog,addressBook,destination,setDestination,selectedAddress,branch,setCart}){const nav=useNavigate();const [type,setType]=useState(destination.mode||'delivery');const [selected,setSelected]=useState(destination.addressId||'');const [pickupBranch,setPickupBranch]=useState(destination.branchId||'zakia');const [payment,setPayment]=useState('cash');const [notes,setNotes]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [adding,setAdding]=useState(false);if(!auth.user)return <Navigate to="/login" replace/>;const chooseAddress=a=>{setSelected(a.id);setDestination({mode:'delivery',addressId:a.id,branchId:a.branch_id})};const finish=async()=>{setError('');if(!supabase)return setError('Supabase no está configurado.');if(!cart.length)return;if(type==='delivery'&&!selected)return setError('Selecciona o agrega una dirección de entrega.');setBusy(true);const currentAddress=addressBook.addresses.find(a=>a.id===selected);const chosenBranch=type==='delivery'?currentAddress?.branch_id:pickupBranch;const items=cart.map(i=>({product_id:i.productId||i.id,quantity:i.reward?1:i.qty,reward_voucher_id:i.rewardVoucherId||null,customizations:i.selectedCustomizations||[],item_note:i.itemNote||''}));const {data,error:e1}=await supabase.rpc('create_order',{p_branch_id:chosenBranch,p_fulfillment_type:type,p_address_id:type==='delivery'?selected:null,p_delivery_notes:notes,p_payment_method:payment,p_items:items});setBusy(false);if(e1){setError(e1.message);return}const order=Array.isArray(data)?data[0]:data;setDestination(type==='delivery'?{mode:'delivery',addressId:selected,branchId:chosenBranch}:{mode:'pickup',addressId:null,branchId:pickupBranch});setCart([]);nav('/success',{state:{orderNumber:order?.order_number}})};return <main className="checkout-page"><div className="simple-head"><button onClick={()=>nav(-1)}><ArrowLeft/></button><h1>Finalizar pedido</h1><span/></div><section className="checkout-section"><h2>¿Cómo quieres tu pedido?</h2><div className="type-toggle"><button onClick={()=>setType('delivery')} className={type==='delivery'?'active':''}><Bike/><span><strong>Delivery</strong><small>Entrega a tu dirección</small></span></button><button onClick={()=>setType('pickup')} className={type==='pickup'?'active':''}><Store/><span><strong>Recoger</strong><small>20–30 min</small></span></button></div></section>{type==='delivery'?<section className="checkout-section"><div className="checkout-title-row"><h2>Dirección de entrega</h2><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div>{addressBook.addresses.map(a=><button className={`address-option ${selected===a.id?'active':''}`} onClick={()=>chooseAddress(a)} key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span>{selected===a.id&&<Check/>}</button>)}{addressBook.addresses.length===0&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar dirección aquí</button>}</section>:<section className="checkout-section"><h2>¿En qué sucursal recoges?</h2>{catalog.branches.map(b=><button className={`address-option ${pickupBranch===b.id?'active':''}`} onClick={()=>setPickupBranch(b.id)} key={b.id}><Store/><span><strong>{b.name}</strong><small>{b.address}</small></span>{pickupBranch===b.id&&<Check/>}</button>)}</section>}<section className="checkout-section"><h2>Método de pago</h2><button className={`pay-option ${payment==='card'?'active':''}`} onClick={()=>setPayment('card')}><CreditCard/><span><strong>Tarjeta</strong><small>Integración de pasarela pendiente</small></span>{payment==='card'&&<Check/>}</button><button className={`pay-option ${payment==='cash'?'active':''}`} onClick={()=>setPayment('cash')}><Banknote/><span><strong>Efectivo</strong><small>Paga al recibir tu pedido</small></span>{payment==='cash'&&<Check/>}</button><label className="admin-field"><span>Notas del pedido</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Sin cebolla, agregar soya..."/></label></section>{error&&<div className="form-message checkout-message">{error}</div>}<section className="summary checkout-summary"><div><span>Productos ({cart.reduce((a,i)=>a+i.qty,0)})</span><strong>{money(total)}</strong></div>{type==='delivery'&&<div><span>Envío</span><strong>$39</strong></div>}<div className="total"><span>Total</span><strong>{money(total+(type==='delivery'?39:0))}</strong></div></section><div className="checkout-bar"><button disabled={busy} className="primary full" onClick={finish}>{busy?'Enviando pedido...':`Confirmar pedido · ${money(total+(type==='delivery'?39:0))}`}</button></div>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async a=>{await addressBook.refresh();chooseAddress(a);setAdding(false)}}/>}</main>}
 
-function SuccessPage(){const nav=useNavigate();const loc=useLocation();return <main className="success"><div className="success-check"><Check/></div><span className="eyebrow dark">¡PEDIDO CONFIRMADO!</span><h1>Gracias por pedir KYO.</h1><p>{loc.state?.orderNumber?`Tu pedido #${String(loc.state.orderNumber).padStart(4,'0')} ya está en preparación.`:'Tu pedido ya está en preparación.'}</p><div className="order-progress"><div className="done"><i><Check/></i><span><strong>Preparando</strong><small>Cocina ya tiene tu pedido</small></span></div><div><i>2</i><span><strong>En camino</strong><small>Te avisaremos cuando salga a ruta</small></span></div><div><i>3</i><span><strong>Entregado</strong><small>¡A disfrutar!</small></span></div></div><button className="primary dark-btn" onClick={()=>nav('/orders')}>Ver mi pedido</button></main>}
+function SuccessPage(){
+  const nav=useNavigate()
+  const loc=useLocation()
+  const orderNumber=loc.state?.orderNumber?String(loc.state.orderNumber).padStart(4,'0'):null
+  return <main className="success success-v2">
+    <div className="success-glow success-glow-one"></div>
+    <div className="success-glow success-glow-two"></div>
+    <section className="success-card">
+      <div className="success-badge"><Check/></div>
+      <span className="success-kicker">PEDIDO CONFIRMADO</span>
+      <h1>¡Ya lo estamos preparando!</h1>
+      <p className="success-lead">Gracias por pedir directo con KYO. Cocina ya recibió tu orden y empezó a trabajar en ella.</p>
+
+      {orderNumber&&<div className="success-order-number"><small>NÚMERO DE PEDIDO</small><strong>#{orderNumber}</strong></div>}
+
+      <div className="success-status-card">
+        <div className="success-status-head">
+          <span className="success-live-dot"></span>
+          <div><small>ESTADO ACTUAL</small><strong>Preparando</strong></div>
+        </div>
+        <div className="success-track">
+          <div className="success-track-step active"><span><Check size={15}/></span><div><strong>Preparando</strong><small>Cocina tiene tu pedido</small></div></div>
+          <div className="success-track-line"></div>
+          <div className="success-track-step"><span>2</span><div><strong>En camino</strong><small>Te avisaremos cuando salga</small></div></div>
+          <div className="success-track-line"></div>
+          <div className="success-track-step"><span>3</span><div><strong>Entregado</strong><small>¡A disfrutar KYO!</small></div></div>
+        </div>
+      </div>
+
+      <div className="success-note"><Clock3/><span><strong>Todo listo.</strong><small>No necesitas hacer nada más por ahora.</small></span></div>
+
+      <button className="success-home-btn" onClick={()=>nav('/')}>Volver a inicio <ChevronRight size={19}/></button>
+      <p className="success-orders-hint">En <button onClick={()=>nav('/orders')}>Pedidos</button> puedes rastrear tu pedido.</p>
+    </section>
+  </main>
+}
 function EmptyState({icon,title,text,button,onClick}){return <section className="empty"><span>{icon}</span><h2>{title}</h2><p>{text}</p><button className="primary dark-btn" onClick={onClick}>{button}</button></section>}
 export default App

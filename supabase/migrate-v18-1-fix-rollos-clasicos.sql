@@ -1,56 +1,6 @@
--- KYO v18 — Rewards van directo al carrito.
--- Ejecutar UNA sola vez después de v17.
---
--- 250 puntos -> 4 Spring Rolls directo al carrito.
--- 6 pedidos -> cualquier rollo de subcategoría "Clásicos", con personalizaciones gratis.
--- Si el cliente quita un reward del carrito antes de ordenar, cancel_reward_voucher()
--- devuelve los 250 puntos o los 6 sellos.
-
-create or replace function public.cancel_reward_voucher(p_voucher_id uuid)
-returns boolean
-language plpgsql
-security definer
-set search_path=public
-as $$
-declare
-  v_user uuid:=auth.uid();
-  v_voucher public.reward_vouchers%rowtype;
-begin
-  if v_user is null then raise exception 'Debes iniciar sesión'; end if;
-
-  select rv.* into v_voucher
-  from public.reward_vouchers rv
-  where rv.id=p_voucher_id
-    and rv.user_id=v_user
-    and rv.status='available'
-  for update;
-
-  if not found then
-    return false;
-  end if;
-
-  if v_voucher.reward_type='spring_rolls' then
-    update public.profiles
-      set reward_points=reward_points+250
-      where id=v_user;
-  elsif v_voucher.reward_type='free_roll' then
-    update public.profiles
-      set reward_order_stamps=reward_order_stamps+6
-      where id=v_user;
-  else
-    raise exception 'Tipo de reward inválido';
-  end if;
-
-  delete from public.reward_vouchers
-  where id=v_voucher.id;
-
-  return true;
-end;
-$$;
-
-revoke all on function public.cancel_reward_voucher(uuid) from public;
-grant execute on function public.cancel_reward_voucher(uuid) to authenticated;
-
+-- KYO v18.1 — corrige validación del reward de 6 pedidos.
+-- Ejecuta UNA sola vez si ya habías ejecutado migrate-v18-rewards-directo-carrito.sql.
+-- La app reconoce la subcategoría por nombre; esta versión hace que Supabase use el mismo criterio.
 
 create or replace function public.create_order(
   p_branch_id text,

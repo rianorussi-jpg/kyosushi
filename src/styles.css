@@ -285,3 +285,21 @@
 @media(max-width:800px){.product-config-modal{padding:16px;border-radius:20px}.config-product-head{grid-template-columns:78px 1fr}.config-product-head img{width:78px;height:68px}.template-builder-grid{grid-template-columns:1fr 1fr}.admin-check{padding-bottom:8px}.template-option-row{grid-template-columns:1fr 105px 36px}.custom-admin-head{display:grid}.product-editor-wide{width:96vw!important}}
 
 .admin-order-items-detail{display:grid;gap:7px;margin:10px 0}.admin-order-items-detail>div{display:grid;gap:2px}.admin-order-items-detail small{color:#666}.admin-order-items-detail em{color:#8a5a00;font-size:12px}
+
+
+/* v11 — orden de personalizaciones y tickets de cocina legibles */
+.template-card-order{display:flex!important;align-items:center;gap:12px}
+.template-card-order>label{display:flex;align-items:flex-start;gap:10px;flex:1;cursor:pointer}
+.template-order-controls{display:flex;align-items:center;gap:6px;margin-left:auto}
+.template-order-controls b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#111;color:#fff;font-size:12px}
+.template-order-controls button{width:34px;height:34px;border:1px solid #ddd;background:#fff;border-radius:9px;font-weight:900;font-size:17px;display:grid;place-items:center}
+.template-order-controls button:disabled{opacity:.25}
+.kitchen-customizations{margin:10px 0 4px;padding:10px 12px;background:#f6f6f6;border-radius:10px;display:grid;gap:9px}
+.kitchen-custom-group{display:grid;gap:3px}
+.kitchen-custom-group strong{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#6b6b6b}
+.kitchen-custom-group span{font-size:14px;font-weight:700;color:#171717;padding-left:7px;border-left:2px solid #d51d2c}
+.kitchen-item-note{margin-top:9px;padding:10px 12px;border-radius:10px;background:#fff4d8;border:1px solid #f1d794}
+.kitchen-item-note strong{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.kitchen-item-note p{margin:0!important;font-size:14px;line-height:1.35}
+.admin-item-customizations{display:grid;gap:3px;margin-top:5px}
+.admin-item-customizations span{font-size:12px;color:#555}

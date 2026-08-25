@@ -869,3 +869,30 @@
 @media(max-width:800px){
   .brand-logo-img{height:45px;max-width:155px}
 }
+
+
+/* ===== Logo protagonista en Inicio ===== */
+.home-hero-logo{
+  display:block;
+  width:132px;
+  height:132px;
+  object-fit:contain;
+  margin:0 0 13px;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.18));
+}
+.hero-copy .home-hero-logo + .eyebrow{
+  margin-top:0;
+}
+@media(max-width:800px){
+  .home-hero-logo{
+    width:116px;
+    height:116px;
+    margin-bottom:11px;
+  }
+}
+@media(max-width:390px){
+  .home-hero-logo{
+    width:106px;
+    height:106px;
+  }
+}

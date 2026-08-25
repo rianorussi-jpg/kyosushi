@@ -3,7 +3,7 @@ import { Routes, Route, NavLink, Navigate, useLocation, useNavigate, useSearchPa
 import {
   Home, Gift, ShoppingBag, User, Search, MapPin, ChevronRight, Flame, Plus, Minus,
   ArrowLeft, CreditCard, Banknote, Store, Bike, Check, LogOut, Settings,
-  Trash2, Navigation, ChevronDown, Sparkles, RefreshCw, X, MapPinned, Pencil
+  Trash2, Navigation, ChevronDown, Sparkles, RefreshCw, X, MapPinned, Pencil, Clock3
 } from 'lucide-react'
 import { fallbackCategories, fallbackProducts, branches as fallbackBranches } from './data'
 import { supabase, supabaseConfigured } from './supabase'

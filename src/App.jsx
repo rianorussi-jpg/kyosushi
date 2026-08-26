@@ -178,6 +178,10 @@ function App(){
       <Route path="/profile" element={<ProfilePage {...shared}/>}/>
       <Route path="/profile/preferences" element={<PreferencesPage {...shared}/>}/>
       <Route path="/login" element={<LoginPage auth={auth}/>}/>
+      <Route path="/reset-password" element={<ResetPasswordPage auth={auth}/>}/>
+      <Route path="/legal" element={<LegalPage/>}/>
+      <Route path="/privacy" element={<PrivacyPage/>}/>
+      <Route path="/terms" element={<TermsPage/>}/>
       <Route path="/cart" element={<CartPage cart={cart} update={update} total={cartTotal} destination={destination} selectedAddress={selectedAddress} branch={branch} catalog={catalog} storeStatus={storeStatus}/>}/>
       <Route path="/checkout" element={<CheckoutPage cart={cart} total={cartTotal} setCart={setCart} {...shared}/>}/>
       <Route path="/success" element={<SuccessPage/>}/>
@@ -340,6 +344,7 @@ function LoginPage({auth}){
   const [confirmPassword,setConfirmPassword]=useState('')
   const [error,setError]=useState('')
   const [busy,setBusy]=useState(false)
+  const [acceptedTerms,setAcceptedTerms]=useState(false)
 
   useEffect(()=>{if(auth.user)nav('/',{replace:true})},[auth.user])
 
@@ -349,12 +354,13 @@ function LoginPage({auth}){
     if(mode==='register'){
       if(phone.length!==10){setError('Tu número de teléfono debe tener exactamente 10 dígitos.');return}
       if(password!==confirmPassword){setError('Las contraseñas no coinciden.');return}
+      if(!acceptedTerms){setError('Debes aceptar los Términos y Condiciones y la Política de Privacidad.');return}
     }
     setBusy(true)
     const result=mode==='register'
       ?await supabase.auth.signUp({
         email,password,
-        options:{data:{full_name:name,phone:`${countryCode}${phone}`,phone_country_code:countryCode}}
+        options:{data:{full_name:name,phone:`${countryCode}${phone}`,phone_country_code:countryCode,terms_accepted_at:new Date().toISOString(),terms_version:'2026-08-26'}}
       })
       :await supabase.auth.signInWithPassword({email,password})
     setBusy(false)
@@ -397,11 +403,102 @@ function LoginPage({auth}){
       <label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="correo@ejemplo.com"/></label>
       <label>Contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>
       {mode==='register'&&<label>Confirmar contraseña<input type="password" minLength="6" required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="••••••••"/></label>}
+      {mode==='login'&&<button type="button" className="forgot-password-link" onClick={()=>nav('/reset-password')}>¿Olvidaste tu contraseña?</button>}
+      {mode==='register'&&<label className="legal-consent"><input type="checkbox" checked={acceptedTerms} onChange={e=>setAcceptedTerms(e.target.checked)}/><span>Acepto los <button type="button" onClick={()=>window.open('/terms','_blank')}>Términos y Condiciones</button> y la <button type="button" onClick={()=>window.open('/privacy','_blank')}>Política de Privacidad</button>.</span></label>}
       {error&&<div className="form-message">{error}</div>}
       <button disabled={busy} className="primary full">{busy?'Procesando...':mode==='login'?'Entrar a mi cuenta':'Crear mi cuenta'}</button>
     </form>
   </main>
 }
+
+function ResetPasswordPage({auth}){
+  const nav=useNavigate()
+  const [email,setEmail]=useState('')
+  const [password,setPassword]=useState('')
+  const [confirm,setConfirm]=useState('')
+  const [recovery,setRecovery]=useState(false)
+  const [busy,setBusy]=useState(false)
+  const [msg,setMsg]=useState('')
+  const [error,setError]=useState('')
+
+  useEffect(()=>{
+    const check=()=>setRecovery(window.location.hash.includes('type=recovery')||window.location.search.includes('type=recovery'))
+    check()
+    const {data}=supabase?.auth?.onAuthStateChange?.((event)=>{if(event==='PASSWORD_RECOVERY')setRecovery(true)})||{}
+    return()=>data?.subscription?.unsubscribe?.()
+  },[])
+
+  const send=async e=>{
+    e.preventDefault();setBusy(true);setError('');setMsg('')
+    const redirectTo=`${window.location.origin}/reset-password`
+    const {error:e2}=await supabase.auth.resetPasswordForEmail(email.trim(),{redirectTo})
+    setBusy(false)
+    if(e2)return setError('No pudimos enviar el correo de recuperación. Intenta nuevamente.')
+    setMsg('Te enviamos un correo. Ábrelo y sigue el enlace para crear una nueva contraseña.')
+  }
+
+  const update=async e=>{
+    e.preventDefault();setError('')
+    if(password.length<6)return setError('La contraseña debe tener al menos 6 caracteres.')
+    if(password!==confirm)return setError('Las contraseñas no coinciden.')
+    setBusy(true)
+    const {error:e2}=await supabase.auth.updateUser({password})
+    setBusy(false)
+    if(e2)return setError('No pudimos cambiar tu contraseña. Solicita un enlace nuevo.')
+    setMsg('Contraseña actualizada. Ya puedes iniciar sesión.')
+    setTimeout(()=>nav('/login',{replace:true}),1200)
+  }
+
+  return <main className="auth-page">
+    <button className="back" onClick={()=>nav('/login')}><ArrowLeft/></button>
+    <div className="auth-brand"><Brand/><p>Recupera el acceso a tu cuenta.</p></div>
+    <form className="auth-card" onSubmit={recovery?update:send}>
+      <div className="password-reset-title"><small>SEGURIDAD</small><h2>{recovery?'Nueva contraseña':'Recuperar contraseña'}</h2><p>{recovery?'Escribe tu nueva contraseña.':'Te enviaremos un enlace seguro a tu correo.'}</p></div>
+      {!recovery?<label>Correo electrónico<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="correo@ejemplo.com"/></label>:<>
+        <label>Nueva contraseña<input type="password" minLength="6" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••"/></label>
+        <label>Confirmar contraseña<input type="password" minLength="6" required value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="••••••••"/></label>
+      </>}
+      {msg&&<div className="form-message legal-success">{msg}</div>}
+      {error&&<div className="form-message">{error}</div>}
+      <button disabled={busy} className="primary full">{busy?'Procesando...':recovery?'Guardar nueva contraseña':'Enviar enlace de recuperación'}</button>
+    </form>
+  </main>
+}
+
+function LegalShell({title,updated,children}){
+  const nav=useNavigate()
+  return <main className="legal-page"><div className="legal-page-inner"><button className="legal-back" onClick={()=>nav(-1)}><ArrowLeft/> Volver</button><Brand/><span className="eyebrow dark">KYO SUSHI</span><h1>{title}</h1><p className="legal-updated">Última actualización: {updated}</p><article>{children}</article><div className="legal-bottom-links"><button onClick={()=>nav('/privacy')}>Privacidad</button><button onClick={()=>nav('/terms')}>Términos</button></div></div></main>
+}
+
+function PrivacyPage(){
+  return <LegalShell title="Política de Privacidad" updated="26 de agosto de 2026">
+    <h2>1. Responsable y alcance</h2><p>Esta política describe el tratamiento de información en la aplicación y servicios digitales de KYO Sushi para realizar pedidos, administrar cuentas y ofrecer el programa KYO Rewards.</p>
+    <h2>2. Información que recopilamos</h2><p>Podemos recopilar nombre, correo electrónico, número de teléfono, direcciones de entrega y referencias proporcionadas por el usuario, datos de cuenta, historial y contenido de pedidos, sucursal seleccionada y datos relacionados con KYO Rewards.</p>
+    <h2>3. Para qué usamos la información</h2><p>Usamos estos datos para crear y administrar tu cuenta, recibir y preparar pedidos, coordinar entrega o recolección, comunicarnos contigo sobre tu pedido, mantener tu historial, administrar puntos y beneficios, brindar soporte, prevenir abuso y mantener la seguridad del servicio.</p>
+    <h2>4. Proveedores tecnológicos</h2><p>La aplicación utiliza proveedores tecnológicos necesarios para operar el servicio, incluyendo infraestructura de autenticación y base de datos. Estos proveedores procesan información únicamente en la medida necesaria para prestar sus servicios.</p>
+    <h2>5. Conservación y eliminación</h2><p>Puedes solicitar la eliminación de tu cuenta desde Perfil → Preferencias → Eliminar cuenta. Eliminaremos los datos asociados que no tengamos obligación legítima o legal de conservar. Determinados registros de transacciones o pedidos pueden conservarse cuando sea necesario para obligaciones legales, fiscales, seguridad o prevención de fraude, y se desvincularán de la cuenta cuando corresponda.</p>
+    <h2>6. Seguridad</h2><p>Aplicamos medidas técnicas y organizativas razonables para proteger la información y limitar el acceso a los datos a las funciones necesarias para operar el servicio.</p>
+    <h2>7. Tus opciones</h2><p>Desde Preferencias puedes actualizar nombre, teléfono y correo, así como solicitar la eliminación de tu cuenta.</p>
+    <h2>8. Cambios</h2><p>Podemos actualizar esta política cuando cambien nuestras prácticas o requisitos aplicables. Indicaremos la fecha de la versión vigente.</p>
+    <h2>9. Contacto</h2><p>Antes de publicar la aplicación deberá indicarse aquí el correo oficial de privacidad o soporte de KYO Sushi.</p>
+  </LegalShell>
+}
+
+function TermsPage(){
+  return <LegalShell title="Términos y Condiciones" updated="26 de agosto de 2026">
+    <h2>1. Uso del servicio</h2><p>KYO Sushi permite consultar el menú, realizar pedidos, elegir entrega o recolección y utilizar beneficios disponibles en la cuenta. El usuario debe proporcionar información correcta y mantener seguras sus credenciales.</p>
+    <h2>2. Pedidos y disponibilidad</h2><p>Los productos, personalizaciones, precios y disponibilidad pueden cambiar. Los pedidos solo pueden realizarse dentro del horario de servicio configurado y están sujetos a disponibilidad de la sucursal correspondiente.</p>
+    <h2>3. Precios y pagos</h2><p>Antes de confirmar un pedido se mostrará su importe y, cuando corresponda, cargos de entrega. Los métodos de pago disponibles serán los indicados durante el checkout.</p>
+    <h2>4. Entregas y recolección</h2><p>El usuario es responsable de proporcionar una dirección, teléfono y referencias correctas. Los tiempos mostrados son operativos y pueden variar por preparación, demanda, tránsito u otras circunstancias.</p>
+    <h2>5. KYO Rewards</h2><p>Los puntos y beneficios son promocionales, personales y no equivalen a dinero. KYO puede establecer requisitos de canje, productos elegibles y reglas del programa, mostrando las condiciones vigentes en la aplicación.</p>
+    <h2>6. Cuenta</h2><p>El usuario puede modificar ciertos datos desde Preferencias y solicitar la eliminación de su cuenta. El uso indebido, fraude o abuso de promociones puede ocasionar la cancelación de beneficios o restricciones de la cuenta conforme resulte aplicable.</p>
+    <h2>7. Cambios</h2><p>Estos términos pueden actualizarse para reflejar cambios en el servicio. La versión vigente indicará su fecha de actualización.</p>
+    <h2>8. Contacto</h2><p>Antes de publicar la aplicación deberá indicarse aquí el correo oficial de soporte de KYO Sushi y los datos legales del responsable.</p>
+  </LegalShell>
+}
+
+function LegalPage(){return <Navigate to="/privacy" replace/>}
+
 function AddressModal({auth,branches,onClose,onSaved,initial=null}){
   const [form,setForm]=useState(initial?{...emptyAddress,...initial}:{...emptyAddress})
   const [busy,setBusy]=useState(false)
@@ -562,6 +659,11 @@ function PreferencesPage({auth,catalog,addressBook,destination,setDestination,se
       <div className="preferences-card">
         <div><small>CORREO</small><h2>Cambiar correo</h2><p>Por seguridad, Supabase puede pedirte confirmar el nuevo correo.</p></div>
         <div className="preferences-edit-row"><input type="email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="primary" onClick={saveEmail} disabled={busy==='email'}>{busy==='email'?'Enviando...':'Cambiar correo'}</button></div>
+      </div>
+
+      <div className="preferences-card">
+        <div><small>LEGAL Y PRIVACIDAD</small><h2>Información legal</h2><p>Consulta cómo usamos tus datos y las condiciones de uso de KYO.</p></div>
+        <div className="legal-preference-links"><button onClick={()=>nav('/privacy')}>Política de Privacidad <ChevronRight/></button><button onClick={()=>nav('/terms')}>Términos y Condiciones <ChevronRight/></button></div>
       </div>
 
       <div className="preferences-card danger-zone">

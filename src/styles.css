@@ -3180,3 +3180,36 @@ main{
   .business-day-row>label:nth-of-type(1){grid-column:1}
   .business-day-row>label:nth-of-type(2){grid-column:2}
 }
+
+
+/* ===== v22.7 recovery + legal ===== */
+.forgot-password-link{
+  justify-self:end;border:0;background:transparent;color:var(--kyo-orange);
+  padding:0;font-size:10px;font-weight:800;cursor:pointer
+}
+.legal-consent{display:grid!important;grid-template-columns:18px 1fr!important;gap:8px!important;align-items:start!important}
+.legal-consent>input{width:16px!important;height:16px!important;margin:2px 0 0!important;accent-color:var(--kyo-orange)}
+.legal-consent>span{font-size:10px!important;line-height:1.5!important;color:#aaa!important}
+.legal-consent button{border:0;background:transparent;padding:0;color:var(--kyo-orange);font:inherit;font-weight:800;cursor:pointer}
+.password-reset-title{display:grid;gap:5px;margin-bottom:5px}
+.password-reset-title small{color:var(--kyo-orange);font-size:8px;font-weight:900;letter-spacing:.12em}
+.password-reset-title h2{margin:0;color:#fff;font-size:24px}
+.password-reset-title p{margin:0;color:#888;font-size:10px;line-height:1.5}
+.legal-success{border-color:#31573a!important;background:#18271c!important;color:#9ed2a8!important}
+.legal-preference-links{display:grid!important;gap:0!important;border:1px solid #303030;border-radius:12px;overflow:hidden}
+.legal-preference-links button{min-height:46px;padding:0 12px;display:flex;align-items:center;justify-content:space-between;border:0;border-bottom:1px solid #303030;background:#111;color:#eee;font-size:11px;font-weight:750;cursor:pointer}
+.legal-preference-links button:last-child{border-bottom:0}
+.legal-preference-links svg{width:16px;color:#777}
+.legal-page{min-height:100vh;background:#101010;color:#ddd;padding:28px 14px 80px}
+.legal-page-inner{width:min(760px,100%);margin:auto}
+.legal-page .brand{margin:22px 0 26px}
+.legal-back{display:flex;align-items:center;gap:7px;border:0;background:transparent;color:#999;padding:0;font-size:10px;font-weight:800;cursor:pointer}
+.legal-back svg{width:17px}
+.legal-page h1{margin:7px 0 5px;color:#fff;font-size:38px;letter-spacing:-.04em}
+.legal-updated{margin:0 0 28px;color:#777;font-size:9px}
+.legal-page article{display:grid;gap:22px}
+.legal-page article h2{margin:0 0 6px;color:#f2f2ef;font-size:15px}
+.legal-page article p{margin:0;color:#aaa;font-size:11px;line-height:1.75}
+.legal-bottom-links{display:flex;gap:10px;margin-top:34px;padding-top:20px;border-top:1px solid #292929}
+.legal-bottom-links button{border:1px solid #333;border-radius:999px;background:#181818;color:#ddd;padding:9px 14px;font-size:9px;font-weight:800;cursor:pointer}
+@media(max-width:560px){.legal-page h1{font-size:31px}}

@@ -3268,3 +3268,113 @@ main{
   font-size:8px;
   color:#bba595;
 }
+
+
+/* ===== v22.9 support + kitchen sound ===== */
+.support-page{
+  width:min(760px,calc(100% - 28px));
+  margin:0 auto;
+  padding:34px 0 130px;
+}
+.support-title{margin-bottom:22px}
+.support-title h1{
+  margin:6px 0 7px;
+  color:#f3f3f1;
+  font-size:36px;
+  line-height:1;
+  letter-spacing:-.045em;
+}
+.support-title p{margin:0;color:#858581;font-size:11px}
+.support-options{display:grid;gap:10px}
+.support-options>button{
+  min-height:92px;
+  padding:14px 15px;
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) 28px;
+  align-items:center;
+  gap:12px;
+  text-align:left;
+  border:1px solid #303030;
+  border-radius:17px;
+  background:#191919;
+  color:#fff;
+  cursor:pointer;
+}
+.support-options>button:hover{border-color:#484848;background:#1e1e1e}
+.support-icon{
+  width:46px;height:46px;
+  display:grid;place-items:center;
+  border-radius:14px;
+  background:#292019;
+  color:var(--kyo-orange);
+}
+.support-options>button>span:nth-child(2){display:grid;gap:4px}
+.support-options strong{font-size:13px;color:#f4f4f2}
+.support-options small{font-size:9px;color:#868682;line-height:1.4}
+.support-options>button>svg{color:#777;width:19px}
+.support-branch-card{
+  margin-top:14px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid #303030;
+  border-radius:14px;
+  background:#141414;
+}
+.support-branch-card>svg{color:var(--kyo-orange)}
+.support-branch-card>span{display:grid;gap:2px}
+.support-branch-card small{font-size:7px;letter-spacing:.1em;color:#777;font-weight:900}
+.support-branch-card strong{font-size:11px;color:#eee}
+.support-branch-card em{font-size:9px;color:#888;font-style:normal}
+.guest-support-btn{
+  margin:14px auto 0;
+  min-height:44px;
+  padding:0 16px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  border:1px solid #333;
+  border-radius:999px;
+  background:#191919;
+  color:#eee;
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+/* Kitchen sound control stays readable in the light kitchen UI */
+.kitchen-head-actions{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+}
+.kitchen-sound-btn{
+  width:auto!important;
+  min-width:128px!important;
+  padding:0 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  background:#3a2520!important;
+  color:#ffc6a0!important;
+  border:1px solid #694334!important;
+}
+.kitchen-sound-btn.ready{
+  background:#1f3525!important;
+  color:#b9e2c2!important;
+  border-color:#3c6245!important;
+}
+.kitchen-sound-btn span{
+  font-size:9px!important;
+  font-weight:850!important;
+}
+.kitchen-sound-btn svg{width:16px!important}
+
+@media(max-width:620px){
+  .support-page{padding-top:24px}
+  .support-title h1{font-size:31px}
+  .kitchen-sound-btn{min-width:44px!important;padding:0 9px!important}
+  .kitchen-sound-btn span{display:none!important}
+}

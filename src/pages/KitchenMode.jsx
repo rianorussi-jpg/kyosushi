@@ -1,9 +1,42 @@
-import React, { useEffect, useState } from 'react'
-import { RefreshCw, ChefHat, LogOut, Clock3, MapPin, Bike, Store, Check, ArrowRight } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
+import { RefreshCw, ChefHat, LogOut, Clock3, MapPin, Bike, Store, Check, ArrowRight, Volume2, VolumeX } from 'lucide-react'
 import { supabase } from '../supabase'
 
 const money=n=>`$${Number(n||0).toLocaleString('es-MX',{maximumFractionDigits:2})}`
 const branchName=id=>id==='zakia'?'KYO Zákia':'KYO Milenio'
+
+function createKitchenAudio(){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext
+  if(!AudioCtx)return null
+  return new AudioCtx()
+}
+
+function playNewOrderBeep(ctx){
+  if(!ctx)return
+  try{
+    if(ctx.state==='suspended')ctx.resume()
+    const osc=ctx.createOscillator()
+    const gain=ctx.createGain()
+    osc.type='sine'
+    osc.frequency.setValueAtTime(880,ctx.currentTime)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+
+    const start=ctx.currentTime
+    gain.gain.setValueAtTime(0.0001,start)
+    for(let i=0;i<10;i++){
+      const t=start+i*0.3
+      gain.gain.setValueAtTime(0.0001,t)
+      gain.gain.linearRampToValueAtTime(0.22,t+0.035)
+      gain.gain.setValueAtTime(0.22,t+0.16)
+      gain.gain.linearRampToValueAtTime(0.0001,t+0.25)
+    }
+    osc.start(start)
+    osc.stop(start+3.05)
+  }catch(e){
+    console.error('Kitchen sound error',e)
+  }
+}
 
 const riderPhones={
   pau:'525623449135',
@@ -30,12 +63,46 @@ export function KitchenGate({auth,children}){
 function KitchenLogin(){const [email,setEmail]=useState('');const [password,setPassword]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false);const submit=async e=>{e.preventDefault();setBusy(true);const {error}=await supabase.auth.signInWithPassword({email,password});setBusy(false);if(error)setError(error.message)};return <main className="kitchen-login"><form className="kitchen-login-card" onSubmit={submit}><ChefHat size={42}/><span>MODO COCINA</span><h1>KYO</h1><p>Entra con la cuenta de tu sucursal.</p><label>Correo<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="zakia@kyosushi.mx"/></label><label>Contraseña<input type="password" required value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="form-message">{error}</div>}<button className="primary full" disabled={busy}>{busy?'Entrando...':'Entrar a cocina'}</button></form></main>}
 
 export function KitchenMode({auth}){
-  const branch=auth.profile?.kitchen_branch||'zakia';const [orders,setOrders]=useState([]);const [loading,setLoading]=useState(true)
-  const load=async()=>{if(!supabase)return;setLoading(true);let q=supabase.from('orders').select('*, order_items(*), profiles(full_name,phone)').eq('branch_id',branch).in('status',['preparing','ready','on_the_way']).order('created_at',{ascending:true});const {data}=await q;setOrders(data||[]);setLoading(false)}
-  useEffect(()=>{load();if(!supabase)return;const ch=supabase.channel(`kitchen-${branch}`).on('postgres_changes',{event:'*',schema:'public',table:'orders',filter:`branch_id=eq.${branch}`},load).subscribe();return()=>supabase.removeChannel(ch)},[branch])
+  const branch=auth.profile?.kitchen_branch||'zakia'
+  const [orders,setOrders]=useState([])
+  const [loading,setLoading]=useState(true)
+  const [soundReady,setSoundReady]=useState(false)
+  const audioRef=useRef(null)
+
+  const enableSound=async()=>{
+    try{
+      if(!audioRef.current)audioRef.current=createKitchenAudio()
+      if(audioRef.current?.state==='suspended')await audioRef.current.resume()
+      setSoundReady(!!audioRef.current)
+    }catch{setSoundReady(false)}
+  }
+
+  const load=async()=>{
+    if(!supabase)return
+    setLoading(true)
+    let q=supabase.from('orders').select('*, order_items(*), profiles(full_name,phone)').eq('branch_id',branch).in('status',['preparing','ready','on_the_way']).order('created_at',{ascending:true})
+    const {data}=await q
+    setOrders(data||[])
+    setLoading(false)
+  }
+
+  useEffect(()=>{
+    load()
+    if(!supabase)return
+    const ch=supabase.channel(`kitchen-${branch}`)
+      .on('postgres_changes',{event:'*',schema:'public',table:'orders',filter:`branch_id=eq.${branch}`},payload=>{
+        if(payload.eventType==='INSERT'&&payload.new?.status==='preparing'){
+          playNewOrderBeep(audioRef.current)
+        }
+        load()
+      })
+      .subscribe()
+    return()=>supabase.removeChannel(ch)
+  },[branch])
+
   const setStatus=async(id,status)=>{await supabase.from('orders').update({status}).eq('id',id);load()}
   const preparing=orders.filter(o=>o.status==='preparing');const ready=orders.filter(o=>o.status==='ready');const route=orders.filter(o=>o.status==='on_the_way')
-  return <main className="kitchen-shell"><header className="kitchen-head"><div><span>MODO COCINA</span><h1>{branchName(branch)}</h1><p>Los pedidos nuevos entran automáticamente a Preparando.</p></div><div><button onClick={load}><RefreshCw className={loading?'spin':''}/></button><button onClick={()=>supabase.auth.signOut()}><LogOut/></button></div></header><section className="kitchen-board"><KitchenColumn title="Preparando" count={preparing.length} orders={preparing} actionLabel="Marcar listo" actionIcon={<Check/>} onAction={id=>setStatus(id,'ready')}/><KitchenColumn title="Listos" count={ready.length} orders={ready} actionLabel={o=>o.fulfillment_type==='pickup'?'Marcar entregado':'Salió a ruta'} actionIcon={o=>o.fulfillment_type==='pickup'?<Check/>:<Bike/>} onAction={(id,o)=>setStatus(id,o.fulfillment_type==='pickup'?'delivered':'on_the_way')}/></section>{route.length>0&&<section className="route-strip">
+  return <main className="kitchen-shell"><header className="kitchen-head"><div><span>MODO COCINA</span><h1>{branchName(branch)}</h1><p>Los pedidos nuevos entran automáticamente a Preparando.</p></div><div className="kitchen-head-actions"><button className={`kitchen-sound-btn ${soundReady?'ready':''}`} onClick={enableSound}>{soundReady?<Volume2/>:<VolumeX/>}<span>{soundReady?'Sonido activo':'Activar sonido'}</span></button><button onClick={load}><RefreshCw className={loading?'spin':''}/></button><button onClick={()=>supabase.auth.signOut()}><LogOut/></button></div></header><section className="kitchen-board"><KitchenColumn title="Preparando" count={preparing.length} orders={preparing} actionLabel="Marcar listo" actionIcon={<Check/>} onAction={id=>setStatus(id,'ready')}/><KitchenColumn title="Listos" count={ready.length} orders={ready} actionLabel={o=>o.fulfillment_type==='pickup'?'Marcar entregado':'Salió a ruta'} actionIcon={o=>o.fulfillment_type==='pickup'?<Check/>:<Bike/>} onAction={(id,o)=>setStatus(id,o.fulfillment_type==='pickup'?'delivered':'on_the_way')}/></section>{route.length>0&&<section className="route-strip">
     <div className="route-strip-head"><span>EN CAMINO</span><strong>{route.length} pedido{route.length!==1?'s':''}</strong></div>
     <div className="route-orders-list">
       {route.map(o=><div className="route-order-row" key={o.id}>

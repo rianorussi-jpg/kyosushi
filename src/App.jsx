@@ -22,6 +22,69 @@ function usePersistedState(key, initial) {
   return [state, setState]
 }
 
+function friendlyError(error,context='general'){
+  if(typeof navigator!=='undefined'&&!navigator.onLine){
+    return 'Sin conexión a internet. Revisa tu conexión e intenta nuevamente.'
+  }
+
+  const raw=String(error?.message||error||'').trim()
+  const lower=raw.toLowerCase()
+
+  if(context==='login'&&lower.includes('invalid login credentials')){
+    return 'Contraseña incorrecta, intenta de nuevo.'
+  }
+  if(lower.includes('user already registered')||lower.includes('already been registered')){
+    return 'Ya existe una cuenta con este correo.'
+  }
+  if(lower.includes('email rate limit')||lower.includes('rate limit')){
+    return 'Hiciste varios intentos seguidos. Espera un momento e intenta nuevamente.'
+  }
+
+  const safeBackendMessages=[
+    'kyo está cerrado',
+    'pedido mínimo',
+    'no tienes suficientes puntos',
+    'aún no completas 6 pedidos',
+    'no está disponible en esta sucursal',
+    'no está disponible',
+    'este reward ya',
+    'debes iniciar sesión',
+    'no puedes eliminar tu cuenta mientras tengas un pedido activo',
+    'el reward de 6 pedidos'
+  ]
+  if(safeBackendMessages.some(x=>lower.includes(x)))return raw
+
+  if(context==='order')return 'No pudimos procesar tu pedido. Intenta nuevamente.'
+  if(context==='address')return 'No pudimos guardar la dirección. Revisa tu conexión e intenta nuevamente.'
+  if(context==='profile')return 'No pudimos guardar el cambio. Intenta nuevamente.'
+  if(context==='email')return 'No pudimos actualizar tu correo. Intenta nuevamente.'
+  if(context==='rewards')return 'No pudimos procesar tu reward. Intenta nuevamente.'
+  if(context==='account_delete')return 'No pudimos eliminar tu cuenta. Intenta nuevamente o contacta a KYO.'
+  if(context==='password')return 'No pudimos completar la recuperación. Intenta nuevamente.'
+  return 'Ocurrió un problema. Intenta nuevamente.'
+}
+
+function useOnlineStatus(){
+  const [online,setOnline]=useState(typeof navigator==='undefined'?true:navigator.onLine)
+  useEffect(()=>{
+    const on=()=>setOnline(true)
+    const off=()=>setOnline(false)
+    window.addEventListener('online',on)
+    window.addEventListener('offline',off)
+    return()=>{
+      window.removeEventListener('online',on)
+      window.removeEventListener('offline',off)
+    }
+  },[])
+  return online
+}
+
+function ConnectionBanner(){
+  const online=useOnlineStatus()
+  if(online)return null
+  return <div className="connection-banner"><span></span><div><strong>Sin conexión</strong><small>Revisa tu internet. Algunas acciones están pausadas.</small></div></div>
+}
+
 function useAuth(){
   const [session,setSession]=useState(null)
   const [profile,setProfile]=useState(null)
@@ -157,7 +220,7 @@ function App(){
     if(item?.reward && delta<0){
       if(item.rewardVoucherId&&supabase){
         const {error}=await supabase.rpc('cancel_reward_voucher',{p_voucher_id:item.rewardVoucherId})
-        if(error){console.error(error);return alert('No pudimos devolver tu reward. Intenta nuevamente.')}
+        if(error){console.error(error);return alert(friendlyError(error,'rewards'))}
         await auth.refreshProfile()
       }
       setCart(prev=>prev.filter(i=>(i.cartLineId||i.id)!==id))
@@ -169,7 +232,7 @@ function App(){
   if(panelHost&&window.location.pathname==='/') return <Navigate to="/panel" replace/>
 
   const shared={auth,catalog,addressBook,destination,setDestination,selectedAddress,branch,storeStatus}
-  return <div className="app-shell"><ScrollToTop/>
+  return <div className="app-shell"><ScrollToTop/><ConnectionBanner/>
     <Routes>
       <Route path="/" element={<HomePage {...shared} add={add} cartCount={cartCount}/>}/>
       <Route path="/menu" element={<MenuPage {...shared} add={add} cartCount={cartCount} cartTotal={cartTotal}/>}/>
@@ -365,12 +428,7 @@ function LoginPage({auth}){
       :await supabase.auth.signInWithPassword({email,password})
     setBusy(false)
     if(result.error){
-      const msg=result.error.message||''
-      if(mode==='login'&&msg.toLowerCase().includes('invalid login credentials')){
-        setError('Contraseña incorrecta, intenta de nuevo.')
-      }else{
-        setError(msg)
-      }
+      setError(friendlyError(result.error,mode==='login'?'login':'general'))
       return
     }
     if(mode==='register'&&!result.data.session){setError('Cuenta creada. Revisa tu correo para confirmar el acceso.');return}
@@ -441,7 +499,7 @@ function ResetPasswordPage({auth}){
     const redirectTo=`${window.location.origin}/reset-password`
     const {error:e2}=await supabase.auth.resetPasswordForEmail(email.trim(),{redirectTo})
     setBusy(false)
-    if(e2)return setError('No pudimos enviar el correo de recuperación. Intenta nuevamente.')
+    if(e2)return setError(friendlyError(e2,'password'))
     setMsg('Te enviamos un correo. Ábrelo y sigue el enlace para crear una nueva contraseña.')
   }
 
@@ -452,7 +510,7 @@ function ResetPasswordPage({auth}){
     setBusy(true)
     const {error:e2}=await supabase.auth.updateUser({password})
     setBusy(false)
-    if(e2)return setError('No pudimos cambiar tu contraseña. Solicita un enlace nuevo.')
+    if(e2)return setError(friendlyError(e2,'password'))
     setMsg('Contraseña actualizada. Ya puedes iniciar sesión.')
     setTimeout(()=>nav('/login',{replace:true}),1200)
   }
@@ -484,7 +542,8 @@ function PrivacyPage(){
     <h2>2. Información que recopilamos</h2><p>Podemos recopilar nombre, correo electrónico, número de teléfono, direcciones de entrega y referencias proporcionadas por el usuario, datos de cuenta, historial y contenido de pedidos, sucursal seleccionada y datos relacionados con KYO Rewards.</p>
     <h2>3. Para qué usamos la información</h2><p>Usamos estos datos para crear y administrar tu cuenta, recibir y preparar pedidos, coordinar entrega o recolección, comunicarnos contigo sobre tu pedido, mantener tu historial, administrar puntos y beneficios, brindar soporte, prevenir abuso y mantener la seguridad del servicio.</p>
     <h2>4. Proveedores tecnológicos</h2><p>La aplicación utiliza proveedores tecnológicos necesarios para operar el servicio, incluyendo infraestructura de autenticación y base de datos. Estos proveedores procesan información únicamente en la medida necesaria para prestar sus servicios.</p>
-    <h2>5. Conservación y eliminación</h2><p>Puedes solicitar la eliminación de tu cuenta desde Perfil → Preferencias → Eliminar cuenta. Eliminaremos los datos asociados que no tengamos obligación legítima o legal de conservar. Determinados registros de transacciones o pedidos pueden conservarse cuando sea necesario para obligaciones legales, fiscales, seguridad o prevención de fraude, y se desvincularán de la cuenta cuando corresponda.</p>
+    <h2>5. Conservación y eliminación de la cuenta</h2><p>Puedes solicitar la eliminación de tu cuenta desde Perfil → Preferencias → Eliminar cuenta. Al eliminarla se elimina tu acceso a la cuenta, perfil, direcciones guardadas y beneficios o saldo de KYO Rewards. Si tienes un pedido activo, la eliminación no podrá completarse hasta que dicho pedido haya finalizado, ya que el restaurante necesita temporalmente tus datos para prepararlo, entregarlo o tenerlo listo para recolección.</p>
+    <p>Los pedidos ya finalizados pueden conservarse como registros históricos del restaurante para fines operativos, administrativos, fiscales, de seguridad o para el cumplimiento de obligaciones aplicables. Al eliminar tu cuenta, estos pedidos dejan de estar vinculados a tu cuenta y se eliminan del historial conservado la dirección de entrega, referencias y notas personales de entrega. La información que deba conservarse por una obligación legal podrá mantenerse durante el plazo que corresponda.</p>
     <h2>6. Seguridad</h2><p>Aplicamos medidas técnicas y organizativas razonables para proteger la información y limitar el acceso a los datos a las funciones necesarias para operar el servicio.</p>
     <h2>7. Tus opciones</h2><p>Desde Preferencias puedes actualizar nombre, teléfono y correo, así como solicitar la eliminación de tu cuenta.</p>
     <h2>8. Cambios</h2><p>Podemos actualizar esta política cuando cambien nuestras prácticas o requisitos aplicables. Indicaremos la fecha de la versión vigente.</p>
@@ -499,7 +558,9 @@ function TermsPage(){
     <h2>3. Precios y pagos</h2><p>Antes de confirmar un pedido se mostrará su importe y, cuando corresponda, cargos de entrega. Los métodos de pago disponibles serán los indicados durante el checkout.</p>
     <h2>4. Entregas y recolección</h2><p>El usuario es responsable de proporcionar una dirección, teléfono y referencias correctas. Los tiempos mostrados son operativos y pueden variar por preparación, demanda, tránsito u otras circunstancias.</p>
     <h2>5. KYO Rewards</h2><p>Los puntos y beneficios son promocionales, personales y no equivalen a dinero. KYO puede establecer requisitos de canje, productos elegibles y reglas del programa, mostrando las condiciones vigentes en la aplicación.</p>
-    <h2>6. Cuenta</h2><p>El usuario puede modificar ciertos datos desde Preferencias y solicitar la eliminación de su cuenta. El uso indebido, fraude o abuso de promociones puede ocasionar la cancelación de beneficios o restricciones de la cuenta conforme resulte aplicable.</p>
+    <h2>6. Cuenta y eliminación</h2><p>El usuario puede modificar ciertos datos desde Preferencias y solicitar la eliminación de su cuenta desde Perfil → Preferencias → Eliminar cuenta. La eliminación no podrá completarse mientras exista un pedido activo; deberá esperarse a que el pedido haya finalizado. Al completar la eliminación se elimina el acceso a la cuenta, el perfil, las direcciones guardadas y los beneficios o saldo de KYO Rewards.</p>
+    <p>Los pedidos históricos ya finalizados podrán conservarse como registros del restaurante cuando resulte necesario para fines operativos, administrativos, fiscales, de seguridad o para cumplir obligaciones aplicables. Estos registros quedarán desligados de la cuenta eliminada y se retirarán de ellos la dirección de entrega, referencias y notas personales de entrega, salvo aquella información que deba conservarse por disposición legal.</p>
+    <p>El uso indebido, fraude o abuso de promociones puede ocasionar la cancelación de beneficios o restricciones de la cuenta conforme resulte aplicable.</p>
     <h2>7. Cambios</h2><p>Estos términos pueden actualizarse para reflejar cambios en el servicio. La versión vigente indicará su fecha de actualización.</p>
     <h2>8. Contacto</h2><p>Antes de publicar la aplicación deberá indicarse aquí el correo oficial de soporte de KYO Sushi y los datos legales del responsable.</p>
   </LegalShell>
@@ -534,12 +595,7 @@ function AddressModal({auth,branches,onClose,onSaved,initial=null}){
       :await supabase.from('addresses').insert(payload).select().single()
     setBusy(false)
     if(result.error){
-      const msg=result.error.message||''
-      if(mode==='login'&&msg.toLowerCase().includes('invalid login credentials')){
-        setError('Contraseña incorrecta, intenta de nuevo.')
-      }else{
-        setError(msg)
-      }
+      setError(friendlyError(result.error,'address'))
       return
     }
     onSaved(result.data)
@@ -589,7 +645,7 @@ function AddressModal({auth,branches,onClose,onSaved,initial=null}){
 function ProfilePage({auth,addressBook,catalog,destination,setDestination,selectedAddress}){
   const nav=useNavigate(); const [showAddresses,setShowAddresses]=useState(false); const [adding,setAdding]=useState(false); const [editing,setEditing]=useState(null)
   if(!auth.user)return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="page-intro"><span className="eyebrow dark">MI KYO</span><h1>Tu cuenta KYO</h1><p>Inicia sesión para guardar direcciones, ver pedidos y acumular rewards.</p><button className="primary dark-btn" onClick={()=>nav('/login')}>Iniciar sesión</button></section><GuestBenefits/></main>
-  return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="profile-hero"><div className="avatar">{(auth.profile?.full_name||auth.user.email||'K')[0].toUpperCase()}</div><div><small>HOLA,</small><h1>{auth.profile?.full_name||'Cliente KYO'}</h1><p>{auth.user.email}</p></div></section><section className="profile-stats"><div><strong>{auth.profile?.reward_points||0}</strong><small>KYO Points</small></div><div><strong>{addressBook.addresses.length}</strong><small>Direcciones</small></div></section><section className="profile-menu"><button onClick={()=>setShowAddresses(v=>!v)}><span><MapPin/> Mis direcciones <small className="profile-count">{addressBook.addresses.length}</small></span><ChevronRight className={showAddresses?'rotate':''}/></button>{showAddresses&&<div className="profile-address-panel"><div className="profile-address-head"><div><small>DIRECCIONES GUARDADAS</small><strong>Elige, edita o agrega una dirección</strong></div><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div><div className="address-list">{addressBook.addresses.map(a=><div className="address-option" key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span><div className="address-actions"><button onClick={()=>setEditing(a)} title="Editar"><Pencil size={16}/></button><button onClick={async()=>{await supabase.from('addresses').delete().eq('id',a.id);addressBook.refresh()}} title="Eliminar"><Trash2 size={16}/></button></div></div>)}{!addressBook.addresses.length&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar mi primera dirección</button>}</div></div>}<button onClick={()=>nav('/profile/preferences')}><span><Settings/> Preferencias</span><ChevronRight/></button><button className="logout" onClick={()=>supabase.auth.signOut()}><span><LogOut/> Cerrar sesión</span></button></section>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async()=>{await addressBook.refresh();setAdding(false)}}/>}{editing&&<AddressModal auth={auth} branches={catalog.branches} initial={editing} onClose={()=>setEditing(null)} onSaved={async()=>{await addressBook.refresh();setEditing(null)}}/>}</main>
+  return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="profile-hero"><div className="avatar">{(auth.profile?.full_name||auth.user.email||'K')[0].toUpperCase()}</div><div><small>HOLA,</small><h1>{auth.profile?.full_name||'Cliente KYO'}</h1><p>{auth.user.email}</p></div></section><section className="profile-stats"><div><strong>{auth.profile?.reward_points||0}</strong><small>KYO Points</small></div><div><strong>{addressBook.addresses.length}</strong><small>Direcciones</small></div></section><section className="profile-menu"><button onClick={()=>setShowAddresses(v=>!v)}><span><MapPin/> Mis direcciones <small className="profile-count">{addressBook.addresses.length}</small></span><ChevronRight className={showAddresses?'rotate':''}/></button>{showAddresses&&<div className="profile-address-panel"><div className="profile-address-head"><div><small>DIRECCIONES GUARDADAS</small><strong>Elige, edita o agrega una dirección</strong></div><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div><div className="address-list">{addressBook.addresses.map(a=><div className="address-option" key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span><div className="address-actions"><button onClick={()=>setEditing(a)} title="Editar"><Pencil size={16}/></button><button onClick={async()=>{const {error}=await supabase.from('addresses').delete().eq('id',a.id);if(error)return alert(friendlyError(error,'address'));addressBook.refresh()}} title="Eliminar"><Trash2 size={16}/></button></div></div>)}{!addressBook.addresses.length&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar mi primera dirección</button>}</div></div>}<button onClick={()=>nav('/profile/preferences')}><span><Settings/> Preferencias</span><ChevronRight/></button><button className="logout" onClick={()=>supabase.auth.signOut()}><span><LogOut/> Cerrar sesión</span></button></section>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async()=>{await addressBook.refresh();setAdding(false)}}/>}{editing&&<AddressModal auth={auth} branches={catalog.branches} initial={editing} onClose={()=>setEditing(null)} onSaved={async()=>{await addressBook.refresh();setEditing(null)}}/>}</main>
 }
 
 function PreferencesPage({auth,catalog,addressBook,destination,setDestination,selectedAddress}){
@@ -616,7 +672,7 @@ function PreferencesPage({auth,catalog,addressBook,destination,setDestination,se
     setBusy('name');setError('');setMsg('')
     const {error:e}=await supabase.from('profiles').update({full_name:clean,updated_at:new Date().toISOString()}).eq('id',auth.user.id)
     setBusy('')
-    if(e)return setError(e.message)
+    if(e)return setError(friendlyError(e,'profile'))
     await auth.refreshProfile()
     setMsg('Nombre actualizado.')
   }
@@ -629,7 +685,7 @@ function PreferencesPage({auth,catalog,addressBook,destination,setDestination,se
     const {error:e}=await supabase.from('profiles').update({phone:full,updated_at:new Date().toISOString()}).eq('id',auth.user.id)
     if(!e)await supabase.auth.updateUser({data:{phone:full,phone_country_code:'+52'}})
     setBusy('')
-    if(e)return setError(e.message)
+    if(e)return setError(friendlyError(e,'profile'))
     await auth.refreshProfile()
     setMsg('Número actualizado.')
   }
@@ -641,14 +697,18 @@ function PreferencesPage({auth,catalog,addressBook,destination,setDestination,se
     setBusy('email');setError('');setMsg('')
     const {error:e}=await supabase.auth.updateUser({email:clean})
     setBusy('')
-    if(e)return setError(e.message)
+    if(e)return setError(friendlyError(e,'email'))
     setMsg('Te enviamos un correo para confirmar el cambio.')
   }
 
   const deleteAccount=async()=>{
     setBusy('delete');setError('');setMsg('')
     const {error:e}=await supabase.rpc('delete_my_account')
-    if(e){setBusy('');return setError(e.message)}
+    if(e){setBusy('');return setError(friendlyError(e,'account_delete'))}
+    try{
+      localStorage.removeItem('kyo-cart-v3')
+      localStorage.removeItem('kyo-destination-v1')
+    }catch{}
     await supabase.auth.signOut()
     nav('/',{replace:true})
   }
@@ -683,7 +743,7 @@ function PreferencesPage({auth,catalog,addressBook,destination,setDestination,se
       </div>
 
       <div className="preferences-card danger-zone">
-        <div><small>CUENTA</small><h2>Eliminar cuenta</h2><p>Elimina tu acceso, perfil, direcciones y rewards. Los pedidos ya realizados se conservan en los registros del restaurante sin quedar ligados a tu cuenta.</p></div>
+        <div><small>CUENTA</small><h2>Eliminar cuenta</h2><p>Elimina tu acceso, perfil, direcciones y rewards. Por seguridad no podrás eliminar la cuenta mientras tengas un pedido activo. Los pedidos anteriores se conservan únicamente como registro del restaurante y se eliminan de ellos tus datos de contacto y entrega.</p></div>
         {!confirmDelete
           ?<button className="delete-account-btn" onClick={()=>setConfirmDelete(true)}>Eliminar mi cuenta</button>
           :<div className="delete-confirm"><strong>¿Seguro que quieres eliminar tu cuenta?</strong><span>Esta acción no se puede deshacer.</span><div><button onClick={()=>setConfirmDelete(false)}>Cancelar</button><button className="delete-account-btn" onClick={deleteAccount} disabled={busy==='delete'}>{busy==='delete'?'Eliminando...':'Sí, eliminar cuenta'}</button></div></div>}
@@ -735,7 +795,7 @@ function RewardsPage({auth,catalog,addressBook,destination,setDestination,select
     setBusy('spring_rolls');setMsg('')
     const {data,error}=await supabase.rpc('redeem_spring_rolls_reward')
     setBusy('')
-    if(error){setMsg(error.message);return}
+    if(error){setMsg(friendlyError(error,'rewards'));return}
     const voucherId=Array.isArray(data)?data[0]:data
     if(!pointsRewardProduct){
       await supabase.rpc('cancel_reward_voucher',{p_voucher_id:voucherId})
@@ -762,7 +822,7 @@ function RewardsPage({auth,catalog,addressBook,destination,setDestination,select
     setBusy('six_orders');setMsg('')
     const {data,error}=await supabase.rpc('redeem_six_orders_reward')
     setBusy('')
-    if(error){setMsg(error.message);return}
+    if(error){setMsg(friendlyError(error,'rewards'));return}
     const voucherId=Array.isArray(data)?data[0]:data
     setCart(prev=>[
       ...prev,
@@ -808,7 +868,7 @@ function OrderCard({o,active}){const state=clientStatus(o.status,o.fulfillment_t
 
 function CartPage({cart,update,total,destination,selectedAddress,branch,catalog,storeStatus}){const nav=useNavigate();const delivery=destination.mode==='delivery';return <main><div className="simple-head"><button onClick={()=>nav(-1)}><ArrowLeft/></button><h1>Tu pedido</h1><span/></div>{cart.length===0?<EmptyState icon={<ShoppingBag/>} title="Tu carrito está vacío" text="Hay mucho KYO esperándote." button="Ver menú" onClick={()=>nav('/menu')}/>:<><section className="cart-branch"><MapPin/><div><small>{delivery?'Entregar en':'Recoger en'}</small><strong>{delivery?(selectedAddress?.label||'Dirección'):branch?.name}</strong><span>{delivery?formatAddress(selectedAddress):branch?.address}</span></div></section><section className="cart-items">{cart.map(i=><article key={i.cartLineId||i.id}><img src={i.image||i.image_url}/><div className="cart-info"><h3>{i.name}</h3>{i.selectedCustomizations?.length>0&&<div className="cart-customizations">{i.selectedCustomizations.map((c,idx)=><small key={idx}>{c.label}{c.price>0?` +${money(c.price)}`:''}</small>)}</div>}{i.itemNote&&<small className="item-note">Nota: {i.itemNote}</small>}{i.reward?<strong className="reward-free-price">GRATIS · KYO REWARDS</strong>:<strong>{money(i.price)}</strong>}</div><div className={`qty ${i.reward?'reward-qty':''}`}><button onClick={()=>update(i.cartLineId||i.id,-1)}><Trash2 size={16}/></button><b>{i.reward?'1':i.qty}</b>{!i.reward&&<button onClick={()=>update(i.cartLineId||i.id,1)}><Plus size={16}/></button>}</div></article>)}</section><section className="summary"><div><span>Subtotal</span><strong>{money(total)}</strong></div>{delivery&&<div><span>Envío</span><strong>$39</strong></div>}<div className="total"><span>Total</span><strong>{money(total+(delivery?39:0))}</strong></div></section>{total<Number(catalog?.settings?.minimum_order||200)&&<div className="minimum-order-notice cart-minimum-notice"><strong>Pedido mínimo {money(catalog?.settings?.minimum_order||200)}</strong><span>Te faltan {money(Number(catalog?.settings?.minimum_order||200)-total)} en productos.</span></div>}{!storeStatus?.open&&<div className="store-cart-closed"><Clock3/><span><strong>KYO está cerrado</strong><small>Podrás continuar tu pedido cuando abramos nuevamente.</small></span></div>}<div className="checkout-bar"><button disabled={!storeStatus?.open||total<Number(catalog?.settings?.minimum_order||200)} className="primary full" onClick={()=>nav('/checkout')}>Continuar · {money(total+(delivery?39:0))}</button></div></>}</main>}
 
-function CheckoutPage({cart,total,auth,catalog,addressBook,destination,setDestination,selectedAddress,branch,setCart,storeStatus}){const nav=useNavigate();const [type,setType]=useState(destination.mode||'delivery');const [selected,setSelected]=useState(destination.addressId||'');const [pickupBranch,setPickupBranch]=useState(destination.branchId||'zakia');const [payment,setPayment]=useState('cash');const [notes,setNotes]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [adding,setAdding]=useState(false);if(!auth.user)return <Navigate to="/login" replace/>;const chooseAddress=a=>{setSelected(a.id);setDestination({mode:'delivery',addressId:a.id,branchId:a.branch_id})};const finish=async()=>{setError('');if(!supabase)return setError('Supabase no está configurado.');if(!cart.length)return;if(!storeStatusFromHours(catalog.settings?.business_hours).open)return setError('KYO está cerrado en este momento. Intenta nuevamente dentro de nuestro horario de servicio.');const minimum=Number(catalog.settings?.minimum_order||200);if(total<minimum)return setError(`El pedido mínimo es de ${money(minimum)}. Te faltan ${money(minimum-total)} en productos.`);const currentAddress=addressBook.addresses.find(a=>a.id===selected);if(type==='delivery'&&!currentAddress)return setError('Agrega una dirección para continuar.');if(type==='delivery'&&!currentAddress.branch_id)return setError('Elige la sucursal más cercana para tu dirección.');setBusy(true);const chosenBranch=type==='delivery'?currentAddress.branch_id:pickupBranch;const items=cart.map(i=>({product_id:i.productId||i.id,quantity:i.reward?1:i.qty,reward_voucher_id:i.rewardVoucherId||null,customizations:i.selectedCustomizations||[],item_note:i.itemNote||''}));const {data,error:e1}=await supabase.rpc('create_order',{p_branch_id:chosenBranch,p_fulfillment_type:type,p_address_id:type==='delivery'?selected:null,p_delivery_notes:notes,p_payment_method:payment,p_items:items});setBusy(false);if(e1){setError(e1.message);return}const order=Array.isArray(data)?data[0]:data;setDestination(type==='delivery'?{mode:'delivery',addressId:selected,branchId:chosenBranch}:{mode:'pickup',addressId:null,branchId:pickupBranch});setCart([]);nav('/success',{state:{orderNumber:order?.order_number,fulfillmentType:type}})};return <main className="checkout-page"><div className="simple-head"><button onClick={()=>nav(-1)}><ArrowLeft/></button><h1>Finalizar pedido</h1><span/></div><section className="checkout-section"><h2>¿Cómo quieres tu pedido?</h2><div className="type-toggle"><button onClick={()=>setType('delivery')} className={type==='delivery'?'active':''}><Bike/><span><strong>Delivery</strong><small>Entrega a tu dirección</small></span></button><button onClick={()=>setType('pickup')} className={type==='pickup'?'active':''}><Store/><span><strong>Recoger</strong><small>20–30 min</small></span></button></div></section>{type==='delivery'?<section className="checkout-section"><div className="checkout-title-row"><h2>Dirección de entrega</h2><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div>{addressBook.addresses.map(a=><button className={`address-option ${selected===a.id?'active':''}`} onClick={()=>chooseAddress(a)} key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span>{selected===a.id&&<Check/>}</button>)}{addressBook.addresses.length===0&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar dirección aquí</button>}</section>:<section className="checkout-section"><h2>¿En qué sucursal recoges?</h2>{catalog.branches.map(b=><button className={`address-option ${pickupBranch===b.id?'active':''}`} onClick={()=>setPickupBranch(b.id)} key={b.id}><Store/><span><strong>{b.name}</strong><small>{b.address}</small></span>{pickupBranch===b.id&&<Check/>}</button>)}</section>}<section className="checkout-section"><h2>Método de pago</h2><button className={`pay-option ${payment==='card'?'active':''}`} onClick={()=>setPayment('card')}><CreditCard/><span><strong>Tarjeta</strong><small>Integración de pasarela pendiente</small></span>{payment==='card'&&<Check/>}</button><button className={`pay-option ${payment==='cash'?'active':''}`} onClick={()=>setPayment('cash')}><Banknote/><span><strong>Efectivo</strong><small>Paga al recibir tu pedido</small></span>{payment==='cash'&&<Check/>}</button><label className="admin-field"><span>Notas del pedido</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Sin cebolla, agregar soya..."/></label></section>{total<Number(catalog.settings?.minimum_order||200)&&<div className="minimum-order-notice"><strong>Pedido mínimo {money(catalog.settings?.minimum_order||200)}</strong><span>Agrega {money(Number(catalog.settings?.minimum_order||200)-total)} más en productos para continuar.</span></div>}{!storeStatus?.open&&<div className="store-cart-closed"><Clock3/><span><strong>KYO está cerrado</strong><small>No es posible confirmar pedidos fuera del horario de servicio.</small></span></div>}{error&&<div className="form-message checkout-message">{error}</div>}<section className="summary checkout-summary"><div><span>Productos ({cart.reduce((a,i)=>a+i.qty,0)})</span><strong>{money(total)}</strong></div>{type==='delivery'&&<div><span>Envío</span><strong>$39</strong></div>}<div className="total"><span>Total</span><strong>{money(total+(type==='delivery'?39:0))}</strong></div></section><div className="checkout-bar"><button disabled={busy||!storeStatus?.open||total<Number(catalog.settings?.minimum_order||200)} className="primary full" onClick={finish}>{busy?'Enviando pedido...':`Confirmar pedido · ${money(total+(type==='delivery'?39:0))}`}</button></div>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async a=>{await addressBook.refresh();chooseAddress(a);setAdding(false)}}/>}</main>}
+function CheckoutPage({cart,total,auth,catalog,addressBook,destination,setDestination,selectedAddress,branch,setCart,storeStatus}){const nav=useNavigate();const [type,setType]=useState(destination.mode||'delivery');const [selected,setSelected]=useState(destination.addressId||'');const [pickupBranch,setPickupBranch]=useState(destination.branchId||'zakia');const [payment,setPayment]=useState('cash');const [notes,setNotes]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [adding,setAdding]=useState(false);if(!auth.user)return <Navigate to="/login" replace/>;const chooseAddress=a=>{setSelected(a.id);setDestination({mode:'delivery',addressId:a.id,branchId:a.branch_id})};const finish=async()=>{setError('');if(!supabase)return setError('Supabase no está configurado.');if(!cart.length)return;if(!storeStatusFromHours(catalog.settings?.business_hours).open)return setError('KYO está cerrado en este momento. Intenta nuevamente dentro de nuestro horario de servicio.');const minimum=Number(catalog.settings?.minimum_order||200);if(total<minimum)return setError(`El pedido mínimo es de ${money(minimum)}. Te faltan ${money(minimum-total)} en productos.`);const currentAddress=addressBook.addresses.find(a=>a.id===selected);if(type==='delivery'&&!currentAddress)return setError('Agrega una dirección para continuar.');if(type==='delivery'&&!currentAddress.branch_id)return setError('Elige la sucursal más cercana para tu dirección.');setBusy(true);const chosenBranch=type==='delivery'?currentAddress.branch_id:pickupBranch;const items=cart.map(i=>({product_id:i.productId||i.id,quantity:i.reward?1:i.qty,reward_voucher_id:i.rewardVoucherId||null,customizations:i.selectedCustomizations||[],item_note:i.itemNote||''}));const {data,error:e1}=await supabase.rpc('create_order',{p_branch_id:chosenBranch,p_fulfillment_type:type,p_address_id:type==='delivery'?selected:null,p_delivery_notes:notes,p_payment_method:payment,p_items:items});setBusy(false);if(e1){setError(friendlyError(e1,'order'));return}const order=Array.isArray(data)?data[0]:data;setDestination(type==='delivery'?{mode:'delivery',addressId:selected,branchId:chosenBranch}:{mode:'pickup',addressId:null,branchId:pickupBranch});setCart([]);nav('/success',{state:{orderNumber:order?.order_number,fulfillmentType:type}})};return <main className="checkout-page"><div className="simple-head"><button onClick={()=>nav(-1)}><ArrowLeft/></button><h1>Finalizar pedido</h1><span/></div><section className="checkout-section"><h2>¿Cómo quieres tu pedido?</h2><div className="type-toggle"><button onClick={()=>setType('delivery')} className={type==='delivery'?'active':''}><Bike/><span><strong>Delivery</strong><small>Entrega a tu dirección</small></span></button><button onClick={()=>setType('pickup')} className={type==='pickup'?'active':''}><Store/><span><strong>Recoger</strong><small>20–30 min</small></span></button></div></section>{type==='delivery'?<section className="checkout-section"><div className="checkout-title-row"><h2>Dirección de entrega</h2><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div>{addressBook.addresses.map(a=><button className={`address-option ${selected===a.id?'active':''}`} onClick={()=>chooseAddress(a)} key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span>{selected===a.id&&<Check/>}</button>)}{addressBook.addresses.length===0&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar dirección aquí</button>}</section>:<section className="checkout-section"><h2>¿En qué sucursal recoges?</h2>{catalog.branches.map(b=><button className={`address-option ${pickupBranch===b.id?'active':''}`} onClick={()=>setPickupBranch(b.id)} key={b.id}><Store/><span><strong>{b.name}</strong><small>{b.address}</small></span>{pickupBranch===b.id&&<Check/>}</button>)}</section>}<section className="checkout-section"><h2>Método de pago</h2><button className={`pay-option ${payment==='card'?'active':''}`} onClick={()=>setPayment('card')}><CreditCard/><span><strong>Tarjeta</strong><small>Integración de pasarela pendiente</small></span>{payment==='card'&&<Check/>}</button><button className={`pay-option ${payment==='cash'?'active':''}`} onClick={()=>setPayment('cash')}><Banknote/><span><strong>Efectivo</strong><small>Paga al recibir tu pedido</small></span>{payment==='cash'&&<Check/>}</button><label className="admin-field"><span>Notas del pedido</span><textarea value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Sin cebolla, agregar soya..."/></label></section>{total<Number(catalog.settings?.minimum_order||200)&&<div className="minimum-order-notice"><strong>Pedido mínimo {money(catalog.settings?.minimum_order||200)}</strong><span>Agrega {money(Number(catalog.settings?.minimum_order||200)-total)} más en productos para continuar.</span></div>}{!storeStatus?.open&&<div className="store-cart-closed"><Clock3/><span><strong>KYO está cerrado</strong><small>No es posible confirmar pedidos fuera del horario de servicio.</small></span></div>}{error&&<div className="form-message checkout-message">{error}</div>}<section className="summary checkout-summary"><div><span>Productos ({cart.reduce((a,i)=>a+i.qty,0)})</span><strong>{money(total)}</strong></div>{type==='delivery'&&<div><span>Envío</span><strong>$39</strong></div>}<div className="total"><span>Total</span><strong>{money(total+(type==='delivery'?39:0))}</strong></div></section><div className="checkout-bar"><button disabled={busy||!storeStatus?.open||total<Number(catalog.settings?.minimum_order||200)} className="primary full" onClick={finish}>{busy?'Enviando pedido...':`Confirmar pedido · ${money(total+(type==='delivery'?39:0))}`}</button></div>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async a=>{await addressBook.refresh();chooseAddress(a);setAdding(false)}}/>}</main>}
 
 function SuccessPage(){
   const nav=useNavigate()

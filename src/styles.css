@@ -3226,3 +3226,45 @@ main{
   line-height:1.45!important;
   font-weight:750!important;
 }
+
+
+/* ===== v22.8 connection handling ===== */
+.connection-banner{
+  position:fixed;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:500;
+  width:min(420px,calc(100% - 24px));
+  min-height:46px;
+  padding:9px 12px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  border:1px solid #69402a;
+  border-radius:13px;
+  background:#211914;
+  color:#fff;
+  box-shadow:0 14px 38px rgba(0,0,0,.32);
+}
+.connection-banner>span{
+  width:9px;
+  height:9px;
+  flex:0 0 auto;
+  border-radius:50%;
+  background:#f47a1f;
+  box-shadow:0 0 0 4px rgba(244,122,31,.12);
+}
+.connection-banner>div{
+  min-width:0;
+  display:grid;
+  gap:1px;
+}
+.connection-banner strong{
+  font-size:10px;
+  color:#fff;
+}
+.connection-banner small{
+  font-size:8px;
+  color:#bba595;
+}

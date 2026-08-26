@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { RefreshCw, ShieldCheck, LayoutDashboard, Utensils, LogOut, Plus, Package, MapPin, Clock3, Pencil, X, Upload, Trash2, Save, ClipboardList, DollarSign, RotateCcw, RotateCw, ZoomIn, ZoomOut, Settings } from 'lucide-react'
+import { RefreshCw, ShieldCheck, LayoutDashboard, Utensils, LogOut, Plus, Package, MapPin, Clock3, Pencil, X, Upload, Trash2, Save, ClipboardList, DollarSign, RotateCcw, RotateCw, ZoomIn, ZoomOut, Settings, Gift } from 'lucide-react'
 import { supabase, MENU_BUCKET } from '../supabase'
 
 const money = n => `$${Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits: 2})}`
@@ -81,6 +81,10 @@ function AdminSettings({catalog}){
   const [rewardProduct,setRewardProduct]=useState(catalog.settings?.points_reward_product_id||'')
   const [busy,setBusy]=useState(false)
   const [message,setMessage]=useState('')
+  const [pointsEmail,setPointsEmail]=useState('')
+  const [pointsAmount,setPointsAmount]=useState('')
+  const [pointsBusy,setPointsBusy]=useState(false)
+  const [pointsMessage,setPointsMessage]=useState('')
 
   useEffect(()=>{
     setMinimum(catalog.settings?.minimum_order||200)
@@ -104,6 +108,21 @@ function AdminSettings({catalog}){
     setMessage('Configuración guardada.')
   }
 
+  const addPointsToUser=async()=>{
+    const email=pointsEmail.trim().toLowerCase()
+    const amount=Math.floor(Number(pointsAmount||0))
+    setPointsMessage('')
+    if(!email)return setPointsMessage('Escribe el correo del usuario.')
+    if(!Number.isFinite(amount)||amount<=0)return setPointsMessage('Pon una cantidad de puntos mayor a 0.')
+    setPointsBusy(true)
+    const {data,error}=await supabase.rpc('admin_add_reward_points',{p_email:email,p_points:amount})
+    setPointsBusy(false)
+    if(error)return setPointsMessage(error.message)
+    const row=Array.isArray(data)?data[0]:data
+    setPointsMessage(`${amount} puntos agregados a ${row?.email||email}. Nuevo saldo: ${row?.reward_points??'actualizado'} puntos.`)
+    setPointsAmount('')
+  }
+
   const grouped=(catalog.categoryObjects||[]).filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order)
 
   return <div className="admin-settings-page">
@@ -119,6 +138,16 @@ function AdminSettings({catalog}){
         <label className="admin-field"><span>Producto gratis</span><select value={rewardProduct} onChange={e=>setRewardProduct(e.target.value)}><option value="">Selecciona un producto</option>{grouped.map(cat=><optgroup key={cat.id} label={cat.name}>{catalog.products.filter(p=>p.category===cat.name).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</optgroup>)}</select></label>
       </div>
       {rewardProduct&&<div className="settings-reward-preview">{(()=>{const p=catalog.products.find(x=>x.id===rewardProduct);return p?<><img src={p.image||p.image_url}/><span><small>REWARD ACTUAL</small><strong>{p.name}</strong><em>{rewardPoints} KYO Points</em></span></>:null})()}</div>}
+    </section>
+
+    <section className="admin-settings-card">
+      <div className="settings-card-head"><span><Gift/></span><div><small>KYO POINTS</small><h2>Agregar puntos a un usuario</h2><p>Busca la cuenta por correo y suma puntos manualmente a su saldo.</p></div></div>
+      <div className="admin-points-form">
+        <label className="admin-field"><span>Correo del usuario</span><input type="email" value={pointsEmail} onChange={e=>setPointsEmail(e.target.value)} placeholder="cliente@correo.com"/></label>
+        <label className="admin-field"><span>Puntos a agregar</span><input type="number" min="1" step="1" value={pointsAmount} onChange={e=>setPointsAmount(e.target.value)} placeholder="100"/></label>
+        <button className="primary admin-add-points-btn" disabled={pointsBusy} onClick={addPointsToUser}>{pointsBusy?'Agregando...':'Agregar puntos'}</button>
+      </div>
+      {pointsMessage&&<div className="admin-points-message">{pointsMessage}</div>}
     </section>
 
     {message&&<div className="form-message">{message}</div>}

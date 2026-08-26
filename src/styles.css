@@ -3008,3 +3008,49 @@ main{
     width:100%;
   }
 }
+
+
+/* ===== v22.5 points + compact preference notices ===== */
+.preferences-message{
+  width:fit-content!important;
+  max-width:min(100%,420px)!important;
+  min-height:0!important;
+  padding:8px 11px!important;
+  margin:0 0 12px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+  line-height:1.35!important;
+}
+
+.admin-points-form{
+  display:grid;
+  grid-template-columns:minmax(230px,1.5fr) minmax(140px,.7fr) auto;
+  gap:10px;
+  align-items:end;
+}
+.admin-add-points-btn{
+  min-height:46px!important;
+  white-space:nowrap;
+}
+.admin-points-message{
+  width:fit-content;
+  max-width:100%;
+  margin-top:12px;
+  padding:8px 11px;
+  border:1px solid #c9decf;
+  border-radius:9px;
+  background:#eef8f1;
+  color:#28643a;
+  font-size:10px;
+  font-weight:750;
+  line-height:1.4;
+}
+
+@media(max-width:700px){
+  .admin-points-form{
+    grid-template-columns:1fr;
+  }
+  .admin-add-points-btn{
+    width:100%;
+  }
+}

@@ -7,6 +7,20 @@ const statusLabels = {
   preparing:'Preparando', ready:'Listo', on_the_way:'En camino', delivered:'Entregado', cancelled:'Cancelado'
 }
 
+const defaultBusinessHours={
+  mon:{closed:true,open:'13:00',close:'21:00'},
+  tue:{closed:false,open:'13:00',close:'21:00'},
+  wed:{closed:false,open:'13:00',close:'21:00'},
+  thu:{closed:false,open:'13:00',close:'22:00'},
+  fri:{closed:false,open:'13:00',close:'22:00'},
+  sat:{closed:false,open:'13:00',close:'22:00'},
+  sun:{closed:false,open:'13:00',close:'22:00'}
+}
+const businessDayLabels=[
+  ['mon','Lunes'],['tue','Martes'],['wed','Miércoles'],['thu','Jueves'],
+  ['fri','Viernes'],['sat','Sábado'],['sun','Domingo']
+]
+
 function Brand(){return <div className="brand"><span className="brand-mark">KYO</span><span className="brand-sub">JAPANESE SOUL FOOD</span></div>}
 
 export function AdminGate({auth,children}){
@@ -85,12 +99,14 @@ function AdminSettings({catalog}){
   const [pointsAmount,setPointsAmount]=useState('')
   const [pointsBusy,setPointsBusy]=useState(false)
   const [pointsMessage,setPointsMessage]=useState('')
+  const [businessHours,setBusinessHours]=useState(catalog.settings?.business_hours||defaultBusinessHours)
 
   useEffect(()=>{
     setMinimum(catalog.settings?.minimum_order||200)
     setRewardPoints(catalog.settings?.points_reward_cost||250)
     setRewardProduct(catalog.settings?.points_reward_product_id||'')
-  },[catalog.settings?.minimum_order,catalog.settings?.points_reward_cost,catalog.settings?.points_reward_product_id])
+    setBusinessHours(catalog.settings?.business_hours||defaultBusinessHours)
+  },[catalog.settings?.minimum_order,catalog.settings?.points_reward_cost,catalog.settings?.points_reward_product_id,catalog.settings?.business_hours])
 
   const save=async()=>{
     setBusy(true);setMessage('')
@@ -99,6 +115,7 @@ function AdminSettings({catalog}){
       minimum_order:Math.max(0,Number(minimum||0)),
       points_reward_cost:Math.max(1,Math.round(Number(rewardPoints||1))),
       points_reward_product_id:rewardProduct||null,
+      business_hours:businessHours,
       updated_at:new Date().toISOString()
     }
     const {error}=await supabase.from('app_settings').upsert(payload,{onConflict:'id'})
@@ -123,12 +140,29 @@ function AdminSettings({catalog}){
     setPointsAmount('')
   }
 
+  const updateBusinessDay=(day,field,value)=>{
+    setBusinessHours(prev=>({...prev,[day]:{...(prev[day]||defaultBusinessHours[day]),[field]:value}}))
+  }
+
   const grouped=(catalog.categoryObjects||[]).filter(c=>!c.parent_id).sort((a,b)=>a.sort_order-b.sort_order)
 
   return <div className="admin-settings-page">
     <section className="admin-settings-card">
       <div className="settings-card-head"><span><DollarSign/></span><div><small>PEDIDOS</small><h2>Pedido mínimo</h2><p>El subtotal de productos debe alcanzar esta cantidad antes de confirmar.</p></div></div>
       <label className="admin-field settings-number-field"><span>Monto mínimo</span><div className="settings-money-input"><b>$</b><input type="number" min="0" step="1" value={minimum} onChange={e=>setMinimum(e.target.value)}/></div></label>
+    </section>
+
+    <section className="admin-settings-card">
+      <div className="settings-card-head"><span><Clock3/></span><div><small>HORARIOS</small><h2>Horario de pedidos</h2><p>La app usa siempre la hora de Ciudad de México. Fuera de este horario los clientes no pueden agregar productos al carrito.</p></div></div>
+      <div className="business-hours-editor">
+        {businessDayLabels.map(([day,label])=>{const h=businessHours?.[day]||defaultBusinessHours[day];return <div className={`business-day-row ${h.closed?'closed':''}`} key={day}>
+          <strong>{label}</strong>
+          <button type="button" className={`business-closed-toggle ${h.closed?'closed':''}`} onClick={()=>updateBusinessDay(day,'closed',!h.closed)}>{h.closed?'Cerrado':'Abierto'}</button>
+          <label><span>Abre</span><input type="time" disabled={h.closed} value={h.open||'13:00'} onChange={e=>updateBusinessDay(day,'open',e.target.value)}/></label>
+          <label><span>Cierra</span><input type="time" disabled={h.closed} value={h.close||'21:00'} onChange={e=>updateBusinessDay(day,'close',e.target.value)}/></label>
+        </div>})}
+      </div>
+      <small className="business-timezone-note">Zona horaria fija: America/Mexico_City (CDMX)</small>
     </section>
 
     <section className="admin-settings-card">

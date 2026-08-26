@@ -1,39 +1,7 @@
--- KYO v22.5
--- Rewards: 1 punto por cada $10 de subtotal entregado.
--- Panel: administradores pueden agregar puntos a una cuenta por correo.
-
-create or replace function public.award_rewards_on_delivery()
-returns trigger
-language plpgsql
-security definer
-set search_path=public
-as $$
-begin
-  if new.status='delivered'
-     and old.status is distinct from 'delivered'
-     and new.rewards_awarded=false then
-
-    if new.user_id is not null then
-      update public.profiles
-      set reward_points=reward_points+floor(new.subtotal/10)::int,
-          reward_order_stamps=reward_order_stamps+1,
-          updated_at=now()
-      where id=new.user_id;
-    end if;
-
-    new.rewards_awarded:=true;
-  end if;
-
-  new.updated_at:=now();
-  return new;
-end;
-$$;
-
-drop trigger if exists orders_award_rewards on public.orders;
-create trigger orders_award_rewards
-before update on public.orders
-for each row execute procedure public.award_rewards_on_delivery();
-
+-- KYO v22.5.1
+-- Corrige "structure of query does not match function result type"
+-- en admin_add_reward_points.
+-- Ejecuta UNA sola vez si ya corriste migrate-v22-5-points.sql.
 
 create or replace function public.admin_add_reward_points(
   p_email text,

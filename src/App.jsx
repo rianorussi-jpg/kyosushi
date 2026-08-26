@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Routes, Route, NavLink, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  Home, Gift, ShoppingBag, User, Search, MapPin, ChevronRight, Flame, Plus, Minus,
+  Home, Gift, ShoppingBag, User, Search, BookOpen, MapPin, ChevronRight, Flame, Plus, Minus,
   ArrowLeft, CreditCard, Banknote, Store, Bike, Check, LogOut, Settings,
   Trash2, Navigation, ChevronDown, Sparkles, RefreshCw, X, MapPinned, Pencil, Clock3
 } from 'lucide-react'
@@ -237,7 +237,7 @@ function BottomNav({auth}){
   if(['/login','/checkout','/success','/panel','/modococina'].some(p=>loc.pathname.startsWith(p)))return null
 
   return <nav className="bottom-nav">
-    {[['/',Home,'Inicio'],['/menu',Search,'Menú'],['/rewards',Gift,'Rewards'],['/orders',ShoppingBag,'Pedidos'],['/profile',User,'Perfil']].map(([to,Icon,label])=>
+    {[['/',Home,'Inicio'],['/menu',BookOpen,'Menú'],['/rewards',Gift,'Rewards'],['/orders',ShoppingBag,'Pedidos'],['/profile',User,'Perfil']].map(([to,Icon,label])=>
       <NavLink key={to} to={to} end={to==='/' } className={({isActive})=>isActive?'active':''}>
         <Icon size={21}/>
         <span>{label}</span>

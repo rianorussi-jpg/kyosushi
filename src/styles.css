@@ -2804,3 +2804,207 @@ main{
     margin-top:-18px;
   }
 }
+
+
+/* ===== v22.4 navigation + guest profile + preferences ===== */
+
+/* iOS/Safari: 16px prevents focus zoom on form controls */
+.auth-card input,
+.auth-card select,
+.auth-card textarea,
+.preferences-page input,
+.preferences-page select,
+.preferences-page textarea{
+  font-size:16px!important;
+}
+
+/* Guest profile benefit cards: readable on the dark client UI */
+.benefit-boxes>div{
+  background:#191919!important;
+  border:1px solid #303030!important;
+  color:#f3f3f1!important;
+}
+.benefit-boxes>div svg{
+  color:var(--kyo-orange)!important;
+}
+.benefit-boxes>div strong{
+  color:#f3f3f1!important;
+}
+.benefit-boxes>div p{
+  color:#8d8d89!important;
+}
+
+/* Preferences */
+.preferences-page{
+  width:min(760px,calc(100% - 28px));
+  margin:0 auto;
+  padding:34px 0 130px;
+}
+.preferences-back{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:0;
+  margin-bottom:28px;
+  border:0;
+  background:transparent;
+  color:#999;
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+}
+.preferences-title{
+  margin-bottom:24px;
+}
+.preferences-title h1{
+  margin:6px 0 7px;
+  color:#f3f3f1;
+  font-size:38px;
+  line-height:1;
+  letter-spacing:-.045em;
+}
+.preferences-title p{
+  margin:0;
+  color:#858581;
+  font-size:12px;
+}
+.preferences-card{
+  display:grid;
+  gap:18px;
+  margin-bottom:12px;
+  padding:20px;
+  border:1px solid #303030;
+  border-radius:18px;
+  background:#191919;
+}
+.preferences-card>div:first-child{
+  display:grid;
+  gap:4px;
+}
+.preferences-card small{
+  color:var(--kyo-orange);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.13em;
+}
+.preferences-card h2{
+  margin:0;
+  color:#f4f4f2;
+  font-size:17px;
+}
+.preferences-card p{
+  margin:0;
+  color:#858581;
+  font-size:10px;
+  line-height:1.5;
+}
+.preferences-edit-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:9px;
+}
+.preferences-edit-row input{
+  width:100%;
+  min-width:0;
+  height:48px;
+  padding:0 13px;
+  border:1px solid #383838;
+  border-radius:12px;
+  outline:none;
+  background:#111;
+  color:#fff;
+}
+.preferences-edit-row input:focus{
+  border-color:var(--kyo-orange);
+}
+.preferences-edit-row .primary{
+  min-height:48px!important;
+}
+.phone-pref{
+  grid-template-columns:auto minmax(0,1fr) auto;
+}
+.phone-pref>span{
+  min-height:48px;
+  padding:0 12px;
+  display:flex;
+  align-items:center;
+  border:1px solid #383838;
+  border-radius:12px;
+  background:#222;
+  color:#ddd;
+  font-size:12px;
+  font-weight:800;
+}
+.preferences-message{
+  margin-bottom:12px;
+  padding:11px 13px;
+  border-radius:12px;
+  font-size:11px;
+  font-weight:750;
+}
+.preferences-message.success{
+  background:#18271c;
+  border:1px solid #31573a;
+  color:#9ed2a8;
+}
+.preferences-message.error{
+  background:#2a1a1a;
+  border:1px solid #5b3030;
+  color:#e0a0a0;
+}
+.danger-zone{
+  margin-top:26px;
+  border-color:#4a2929;
+}
+.danger-zone small{color:#d56b6b}
+.delete-account-btn{
+  width:max-content;
+  min-height:42px;
+  padding:0 15px;
+  border:1px solid #693737;
+  border-radius:999px;
+  background:#2a1919;
+  color:#e89b9b;
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer;
+}
+.delete-confirm{
+  display:grid!important;
+  gap:5px!important;
+  padding:14px!important;
+  border-radius:13px!important;
+  background:#241717!important;
+}
+.delete-confirm strong{color:#f1d0d0!important;font-size:12px}
+.delete-confirm>span{color:#aa8585!important;font-size:10px}
+.delete-confirm>div{
+  display:flex;
+  gap:8px;
+  margin-top:7px;
+}
+.delete-confirm>div>button:first-child{
+  min-height:42px;
+  padding:0 14px;
+  border:1px solid #444;
+  border-radius:999px;
+  background:#222;
+  color:#ddd;
+}
+
+@media(max-width:560px){
+  .preferences-page{padding-top:24px}
+  .preferences-title h1{font-size:34px}
+  .preferences-edit-row{
+    grid-template-columns:1fr;
+  }
+  .phone-pref{
+    grid-template-columns:auto 1fr;
+  }
+  .phone-pref .primary{
+    grid-column:1/-1;
+  }
+  .preferences-edit-row .primary{
+    width:100%;
+  }
+}

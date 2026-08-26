@@ -79,6 +79,12 @@ function useAddresses(auth){
   return {addresses,setAddresses,loading,refresh}
 }
 
+function ScrollToTop(){
+  const {pathname}=useLocation()
+  useEffect(()=>{window.scrollTo({top:0,left:0,behavior:'auto'})},[pathname])
+  return null
+}
+
 function App(){
   const auth=useAuth()
   const catalog=useCatalog()
@@ -118,13 +124,14 @@ function App(){
   if(panelHost&&window.location.pathname==='/') return <Navigate to="/panel" replace/>
 
   const shared={auth,catalog,addressBook,destination,setDestination,selectedAddress,branch}
-  return <div className="app-shell">
+  return <div className="app-shell"><ScrollToTop/>
     <Routes>
       <Route path="/" element={<HomePage {...shared} add={add} cartCount={cartCount}/>}/>
       <Route path="/menu" element={<MenuPage {...shared} add={add} cartCount={cartCount} cartTotal={cartTotal}/>}/>
       <Route path="/rewards" element={<RewardsPage {...shared} cart={cart} setCart={setCart}/>}/>
       <Route path="/orders" element={<OrdersPage {...shared}/>}/>
       <Route path="/profile" element={<ProfilePage {...shared}/>}/>
+      <Route path="/profile/preferences" element={<PreferencesPage {...shared}/>}/>
       <Route path="/login" element={<LoginPage auth={auth}/>}/>
       <Route path="/cart" element={<CartPage cart={cart} update={update} total={cartTotal} destination={destination} selectedAddress={selectedAddress} branch={branch} catalog={catalog}/>}/>
       <Route path="/checkout" element={<CheckoutPage cart={cart} total={cartTotal} setCart={setCart} {...shared}/>}/>
@@ -416,7 +423,102 @@ function AddressModal({auth,branches,onClose,onSaved,initial=null}){
 function ProfilePage({auth,addressBook,catalog,destination,setDestination,selectedAddress}){
   const nav=useNavigate(); const [showAddresses,setShowAddresses]=useState(false); const [adding,setAdding]=useState(false); const [editing,setEditing]=useState(null)
   if(!auth.user)return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="page-intro"><span className="eyebrow dark">MI KYO</span><h1>Tu cuenta KYO</h1><p>Inicia sesión para guardar direcciones, ver pedidos y acumular rewards.</p><button className="primary dark-btn" onClick={()=>nav('/login')}>Iniciar sesión</button></section><GuestBenefits/></main>
-  return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="profile-hero"><div className="avatar">{(auth.profile?.full_name||auth.user.email||'K')[0].toUpperCase()}</div><div><small>HOLA,</small><h1>{auth.profile?.full_name||'Cliente KYO'}</h1><p>{auth.user.email}</p></div></section><section className="profile-stats"><div><strong>{auth.profile?.reward_points||0}</strong><small>KYO Points</small></div><div><strong>{addressBook.addresses.length}</strong><small>Direcciones</small></div></section><section className="profile-menu"><button onClick={()=>setShowAddresses(v=>!v)}><span><MapPin/> Mis direcciones <small className="profile-count">{addressBook.addresses.length}</small></span><ChevronRight className={showAddresses?'rotate':''}/></button>{showAddresses&&<div className="profile-address-panel"><div className="profile-address-head"><div><small>DIRECCIONES GUARDADAS</small><strong>Elige, edita o agrega una dirección</strong></div><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div><div className="address-list">{addressBook.addresses.map(a=><div className="address-option" key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span><div className="address-actions"><button onClick={()=>setEditing(a)} title="Editar"><Pencil size={16}/></button><button onClick={async()=>{await supabase.from('addresses').delete().eq('id',a.id);addressBook.refresh()}} title="Eliminar"><Trash2 size={16}/></button></div></div>)}{!addressBook.addresses.length&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar mi primera dirección</button>}</div></div>}<button><span><Settings/> Preferencias</span><ChevronRight/></button><button className="logout" onClick={()=>supabase.auth.signOut()}><span><LogOut/> Cerrar sesión</span></button></section>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async()=>{await addressBook.refresh();setAdding(false)}}/>}{editing&&<AddressModal auth={auth} branches={catalog.branches} initial={editing} onClose={()=>setEditing(null)} onSaved={async()=>{await addressBook.refresh();setEditing(null)}}/>}</main>
+  return <main><Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/><section className="profile-hero"><div className="avatar">{(auth.profile?.full_name||auth.user.email||'K')[0].toUpperCase()}</div><div><small>HOLA,</small><h1>{auth.profile?.full_name||'Cliente KYO'}</h1><p>{auth.user.email}</p></div></section><section className="profile-stats"><div><strong>{auth.profile?.reward_points||0}</strong><small>KYO Points</small></div><div><strong>{addressBook.addresses.length}</strong><small>Direcciones</small></div></section><section className="profile-menu"><button onClick={()=>setShowAddresses(v=>!v)}><span><MapPin/> Mis direcciones <small className="profile-count">{addressBook.addresses.length}</small></span><ChevronRight className={showAddresses?'rotate':''}/></button>{showAddresses&&<div className="profile-address-panel"><div className="profile-address-head"><div><small>DIRECCIONES GUARDADAS</small><strong>Elige, edita o agrega una dirección</strong></div><button className="text-btn" onClick={()=>setAdding(true)}><Plus size={16}/> Agregar</button></div><div className="address-list">{addressBook.addresses.map(a=><div className="address-option" key={a.id}><MapPin/><span><strong>{a.label} · {a.branch_id==='zakia'?'Zákia':'Milenio'}</strong><small>{formatAddress(a)}</small>{a.notes&&<em>{a.notes}</em>}</span><div className="address-actions"><button onClick={()=>setEditing(a)} title="Editar"><Pencil size={16}/></button><button onClick={async()=>{await supabase.from('addresses').delete().eq('id',a.id);addressBook.refresh()}} title="Eliminar"><Trash2 size={16}/></button></div></div>)}{!addressBook.addresses.length&&<button className="save-login" onClick={()=>setAdding(true)}>+ Agregar mi primera dirección</button>}</div></div>}<button onClick={()=>nav('/profile/preferences')}><span><Settings/> Preferencias</span><ChevronRight/></button><button className="logout" onClick={()=>supabase.auth.signOut()}><span><LogOut/> Cerrar sesión</span></button></section>{adding&&<AddressModal auth={auth} branches={catalog.branches} onClose={()=>setAdding(false)} onSaved={async()=>{await addressBook.refresh();setAdding(false)}}/>}{editing&&<AddressModal auth={auth} branches={catalog.branches} initial={editing} onClose={()=>setEditing(null)} onSaved={async()=>{await addressBook.refresh();setEditing(null)}}/>}</main>
+}
+
+function PreferencesPage({auth,catalog,addressBook,destination,setDestination,selectedAddress}){
+  const nav=useNavigate()
+  const [name,setName]=useState(auth.profile?.full_name||'')
+  const [phone,setPhone]=useState((auth.profile?.phone||'').replace(/^\+52/,'').replace(/\D/g,'').slice(-10))
+  const [email,setEmail]=useState(auth.user?.email||'')
+  const [busy,setBusy]=useState('')
+  const [msg,setMsg]=useState('')
+  const [error,setError]=useState('')
+  const [confirmDelete,setConfirmDelete]=useState(false)
+
+  useEffect(()=>{
+    setName(auth.profile?.full_name||'')
+    setPhone((auth.profile?.phone||'').replace(/^\+52/,'').replace(/\D/g,'').slice(-10))
+    setEmail(auth.user?.email||'')
+  },[auth.profile?.full_name,auth.profile?.phone,auth.user?.email])
+
+  if(!auth.user)return <Navigate to="/login" replace/>
+
+  const saveName=async()=>{
+    const clean=name.trim()
+    if(!clean)return setError('Escribe tu nombre.')
+    setBusy('name');setError('');setMsg('')
+    const {error:e}=await supabase.from('profiles').update({full_name:clean,updated_at:new Date().toISOString()}).eq('id',auth.user.id)
+    setBusy('')
+    if(e)return setError(e.message)
+    await auth.refreshProfile()
+    setMsg('Nombre actualizado.')
+  }
+
+  const savePhone=async()=>{
+    const digits=phone.replace(/\D/g,'')
+    if(digits.length!==10)return setError('Tu número debe tener exactamente 10 dígitos.')
+    setBusy('phone');setError('');setMsg('')
+    const full=`+52${digits}`
+    const {error:e}=await supabase.from('profiles').update({phone:full,updated_at:new Date().toISOString()}).eq('id',auth.user.id)
+    if(!e)await supabase.auth.updateUser({data:{phone:full,phone_country_code:'+52'}})
+    setBusy('')
+    if(e)return setError(e.message)
+    await auth.refreshProfile()
+    setMsg('Número actualizado.')
+  }
+
+  const saveEmail=async()=>{
+    const clean=email.trim().toLowerCase()
+    if(!clean)return setError('Escribe tu correo.')
+    if(clean===auth.user.email)return setMsg('Ese ya es tu correo actual.')
+    setBusy('email');setError('');setMsg('')
+    const {error:e}=await supabase.auth.updateUser({email:clean})
+    setBusy('')
+    if(e)return setError(e.message)
+    setMsg('Te enviamos un correo para confirmar el cambio.')
+  }
+
+  const deleteAccount=async()=>{
+    setBusy('delete');setError('');setMsg('')
+    const {error:e}=await supabase.rpc('delete_my_account')
+    if(e){setBusy('');return setError(e.message)}
+    await supabase.auth.signOut()
+    nav('/',{replace:true})
+  }
+
+  return <main>
+    <Header auth={auth} catalog={catalog} addressBook={addressBook} destination={destination} setDestination={setDestination} selectedAddress={selectedAddress}/>
+    <section className="preferences-page">
+      <button className="preferences-back" onClick={()=>nav('/profile')}><ArrowLeft size={18}/> Volver a perfil</button>
+      <div className="preferences-title"><span className="eyebrow dark">MI CUENTA</span><h1>Preferencias</h1><p>Actualiza los datos de tu cuenta KYO.</p></div>
+
+      {msg&&<div className="preferences-message success">{msg}</div>}
+      {error&&<div className="preferences-message error">{error}</div>}
+
+      <div className="preferences-card">
+        <div><small>NOMBRE</small><h2>Cambiar nombre</h2><p>Así aparecerá tu nombre en KYO y en tus pedidos.</p></div>
+        <div className="preferences-edit-row"><input value={name} onChange={e=>setName(e.target.value)}/><button className="primary" onClick={saveName} disabled={busy==='name'}>{busy==='name'?'Guardando...':'Guardar'}</button></div>
+      </div>
+
+      <div className="preferences-card">
+        <div><small>TELÉFONO</small><h2>Cambiar número</h2><p>Lo usamos para identificarte cuando entregamos tu pedido.</p></div>
+        <div className="preferences-edit-row phone-pref"><span>🇲🇽 +52</span><input type="tel" inputMode="numeric" maxLength="10" value={phone} onChange={e=>setPhone(e.target.value.replace(/\D/g,'').slice(0,10))}/><button className="primary" onClick={savePhone} disabled={busy==='phone'}>{busy==='phone'?'Guardando...':'Guardar'}</button></div>
+      </div>
+
+      <div className="preferences-card">
+        <div><small>CORREO</small><h2>Cambiar correo</h2><p>Por seguridad, Supabase puede pedirte confirmar el nuevo correo.</p></div>
+        <div className="preferences-edit-row"><input type="email" value={email} onChange={e=>setEmail(e.target.value)}/><button className="primary" onClick={saveEmail} disabled={busy==='email'}>{busy==='email'?'Enviando...':'Cambiar correo'}</button></div>
+      </div>
+
+      <div className="preferences-card danger-zone">
+        <div><small>CUENTA</small><h2>Eliminar cuenta</h2><p>Elimina tu acceso, perfil, direcciones y rewards. Los pedidos ya realizados se conservan en los registros del restaurante sin quedar ligados a tu cuenta.</p></div>
+        {!confirmDelete
+          ?<button className="delete-account-btn" onClick={()=>setConfirmDelete(true)}>Eliminar mi cuenta</button>
+          :<div className="delete-confirm"><strong>¿Seguro que quieres eliminar tu cuenta?</strong><span>Esta acción no se puede deshacer.</span><div><button onClick={()=>setConfirmDelete(false)}>Cancelar</button><button className="delete-account-btn" onClick={deleteAccount} disabled={busy==='delete'}>{busy==='delete'?'Eliminando...':'Sí, eliminar cuenta'}</button></div></div>}
+      </div>
+    </section>
+  </main>
 }
 
 function GuestBenefits(){return <section className="section"><div className="benefit-boxes"><div><Gift/><strong>Rewards exclusivos</strong><p>Acumula puntos en pedidos entregados.</p></div><div><MapPin/><strong>Direcciones guardadas</strong><p>Pide en menos pasos la próxima vez.</p></div><div><ShoppingBag/><strong>Historial completo</strong><p>Consulta todos tus pedidos.</p></div></div></section>}

@@ -3213,3 +3213,16 @@ main{
 .legal-bottom-links{display:flex;gap:10px;margin-top:34px;padding-top:20px;border-top:1px solid #292929}
 .legal-bottom-links button{border:1px solid #333;border-radius:999px;background:#181818;color:#ddd;padding:9px 14px;font-size:9px;font-weight:800;cursor:pointer}
 @media(max-width:560px){.legal-page h1{font-size:31px}}
+
+
+/* ===== v22.7.1 auth messages + rewards closed notice ===== */
+.reward-message{
+  background:#241b15!important;
+  border:1px solid #5a3922!important;
+  color:#f3f3f1!important;
+  padding:11px 13px!important;
+  border-radius:12px!important;
+  font-size:10px!important;
+  line-height:1.45!important;
+  font-weight:750!important;
+}

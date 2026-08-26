@@ -364,7 +364,15 @@ function LoginPage({auth}){
       })
       :await supabase.auth.signInWithPassword({email,password})
     setBusy(false)
-    if(result.error){setError(result.error.message);return}
+    if(result.error){
+      const msg=result.error.message||''
+      if(mode==='login'&&msg.toLowerCase().includes('invalid login credentials')){
+        setError('Contraseña incorrecta, intenta de nuevo.')
+      }else{
+        setError(msg)
+      }
+      return
+    }
     if(mode==='register'&&!result.data.session){setError('Cuenta creada. Revisa tu correo para confirmar el acceso.');return}
     nav('/')
   }
@@ -374,8 +382,8 @@ function LoginPage({auth}){
     <div className="auth-brand"><Brand/><p>Tu KYO. Tus rewards. Tu pedido.</p></div>
     <form className="auth-card" onSubmit={submit}>
       <div className="auth-tabs">
-        <button type="button" className={mode==='login'?'active':''} onClick={()=>setMode('login')}>Iniciar sesión</button>
-        <button type="button" className={mode==='register'?'active':''} onClick={()=>setMode('register')}>Crear cuenta</button>
+        <button type="button" className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('')}}>Iniciar sesión</button>
+        <button type="button" className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('')}}>Crear cuenta</button>
       </div>
       {mode==='register'&&<>
         <label>Nombre<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Tu nombre"/></label>
@@ -525,7 +533,15 @@ function AddressModal({auth,branches,onClose,onSaved,initial=null}){
       ?await supabase.from('addresses').update(payload).eq('id',initial.id).select().single()
       :await supabase.from('addresses').insert(payload).select().single()
     setBusy(false)
-    if(result.error){setError(result.error.message);return}
+    if(result.error){
+      const msg=result.error.message||''
+      if(mode==='login'&&msg.toLowerCase().includes('invalid login credentials')){
+        setError('Contraseña incorrecta, intenta de nuevo.')
+      }else{
+        setError(msg)
+      }
+      return
+    }
     onSaved(result.data)
   }
 
